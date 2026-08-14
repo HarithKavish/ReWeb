@@ -3,20 +3,36 @@
   ReWeb is a general-purpose browser, so it must be able to load a URL the user
   explicitly typed even when that URL is plain http://. Refusing cleartext at the
   platform level would make http:// sites simply fail with an opaque error.
-
-  What this config does NOT do:
-    * It does not disable certificate validation. The system trust anchors are
-      used unchanged, and SSL errors are surfaced to the user as an interstitial
-      (see engine/webview/ReWebWebViewClient.onReceivedSslError).
-    * It does not add a debug-only "trust user CAs everywhere" override.
-    * It never downgrades an https:// URL to http://.
-
   Cleartext pages are marked "Not secure" in the URL bar via SecurityState.
+
+  Trust anchors: system AND user.
+
+  From API 24 an app stops trusting user-installed certificate authorities unless
+  it opts back in here. For an ordinary app that default is right. For a browser
+  on a legacy device it is actively harmful, because those devices ship a root
+  store baked into the system image in 2015-2016 that is never updated and does
+  not contain ISRG Root X1 — the Let's Encrypt root that now secures a large part
+  of the web. Without this opt-in, the user has no way whatsoever to repair their
+  own device: they could install the missing root through Android Settings and
+  ReWeb would still refuse it.
+
+  Trusting user-installed roots is what every real browser does, Chrome included.
+  It requires the user to deliberately install a certificate through Settings, and
+  it is the only path by which an Android 7.0-or-older device can reach a
+  Let's Encrypt site at all. See COMPATIBILITY.md and SECURITY.md.
+
+  What this config still does NOT do:
+    * It does not disable certificate validation. Chain building and hostname
+      verification are unchanged, and failures surface as an interstitial (see
+      engine/webview/ReWebWebViewClient.onReceivedSslError).
+    * It adds no debug-only "trust everything" override.
+    * It never downgrades an https:// URL to http://.
 -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
+            <certificates src="user" />
         </trust-anchors>
     </base-config>
 </network-security-config>

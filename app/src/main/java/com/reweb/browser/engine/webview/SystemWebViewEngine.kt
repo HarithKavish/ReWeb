@@ -178,6 +178,13 @@ class SystemWebViewEngine(context: Context) : BrowserEngine {
         webView.loadDataWithBaseURL(null, html, "text/html", "utf-8", baseUrl)
     }
 
+    override fun loadDocumentAtOrigin(html: String, origin: String) {
+        if (destroyed) return
+        // Passing the origin as the base URL is what gives the document a real,
+        // secure origin instead of an opaque one.
+        webView.loadDataWithBaseURL(origin, html, "text/html", "utf-8", null)
+    }
+
     override fun goBack() {
         if (!destroyed && webView.canGoBack()) webView.goBack()
     }

@@ -38,6 +38,18 @@ interface BrowserEngine {
     /** Renders an in-app document (error page, interstitial) attributed to [baseUrl]. */
     fun loadHtml(html: String, baseUrl: String?)
 
+    /**
+     * Loads an in-app document under a real, non-opaque origin.
+     *
+     * Used only by the compatibility probe. `about:blank` and `data:` documents
+     * get an opaque, non-secure origin, under which cookies, DOM storage,
+     * getUserMedia, service workers and Encrypted Media all throw or vanish —
+     * producing failures that describe the probe's own sandbox rather than the
+     * device. [origin] must be an https origin so the document is a secure
+     * context.
+     */
+    fun loadDocumentAtOrigin(html: String, origin: String)
+
     fun goBack()
     fun goForward()
     fun reload()

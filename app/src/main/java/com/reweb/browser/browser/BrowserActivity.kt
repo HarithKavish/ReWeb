@@ -408,11 +408,14 @@ class BrowserActivity : AppCompatActivity(), BrowserController.Host, MediaPlayba
 
     override fun showSslInterstitial(issue: SslIssue, decision: SslDecision) {
         val host = UrlUtils.hostOf(issue.url) ?: issue.url
+        // On a device whose root store predates Let's Encrypt, the generic warning
+        // is technically true but useless. Name the real cause and the real fix.
+        val trustStoreHint = CertificateAdvice.outdatedTrustStoreHint(this, issue.kind)
         AlertDialog.Builder(this)
             .setTitle(R.string.ssl_warning_title)
             .setMessage(
                 getString(R.string.ssl_warning_body, host, sslReason(issue)) + "\n\n" +
-                    getString(R.string.ssl_warning_hint)
+                    (trustStoreHint ?: getString(R.string.ssl_warning_hint))
             )
             // "Go back" is the positive, default-focused action.
             .setPositiveButton(R.string.ssl_go_back) { _, _ -> decision.cancel() }

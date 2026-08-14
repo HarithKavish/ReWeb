@@ -51,6 +51,64 @@ rendering engine need not be.
 
 ---
 
+## Verified on real hardware
+
+Everything below this heading was measured on a physical device, not inferred.
+
+**Samsung Galaxy J2 (SM-J200G)** — Android 5.1.1, API 22, armeabi-v7a, 913 MB RAM,
+`ro.config.low_ram=true`, 96 MB heap limit, WebView **Chromium 94.0.4606.85**.
+
+| Capability | Result | Notes |
+|---|---|---|
+| App launch, browsing, tabs, menus | Works | |
+| JavaScript, modern JS (ES2017) | PASS | `async`/`await` parsed |
+| Cookies, localStorage, sessionStorage | PASS | |
+| IndexedDB, WebSockets, Fetch | PASS | |
+| HTML5 video (H.264), audio (MP3) | PASS | `canPlayType` = "probably" |
+| Media Source Extensions | PASS | |
+| File upload, fullscreen | PASS | |
+| Service Workers, getUserMedia | PASS | |
+| CSS Grid | PASS | |
+| **Widevine DRM** | **FAIL** | No CDM. DRM streaming cannot play. |
+| **MediaSession API** | **FAIL** | Absent from WebView; notification falls back to the page title. |
+| **WebGL** | **FAIL** | Context creation failed. |
+| **Certificate trust store** | **Outdated** | See below — the biggest practical problem. |
+
+Two things stand out.
+
+**The engine is fine; the trust store is not.** Chromium 94 is well past ReWeb's
+modern baseline, yet HTTPS fails on a large share of the web. These are updated by
+completely different mechanisms — the WebView is an APK, the CA list is baked into
+the system image — so a device can have a current engine and a decade-old set of
+roots at the same time.
+
+**Live tabs were correctly capped at 1.** `ro.config.low_ram=true` was detected and
+the engine budget reduced accordingly, which is the behaviour a 913 MB device
+needs.
+
+### The trust-store problem, in detail
+
+The device carries 162 system CAs. `ISRG Root X1` — Let's Encrypt's root — is
+**absent**. `DST Root CA X3`, which expired in September 2021, is present.
+
+For years that was survivable: Let's Encrypt cross-signed from DST Root CA X3, and
+Android uniquely ignores the expiry date of a trust anchor, so old devices kept
+validating the chain. [That arrangement has since ended](https://community.letsencrypt.org/t/support-for-android-7-and-older-from-oct-2024/216446),
+and Let's Encrypt now serves the modern ISRG Root X1 chain by default.
+
+The result today: **wikipedia.org fails on this device with "untrusted
+authority"**, and so does anything else using Let's Encrypt. Nothing is wrong with
+the site, the connection, or the browser.
+
+**The fix, which works:** download ISRG Root X1 from
+[letsencrypt.org/certificates](https://letsencrypt.org/certificates/) and install
+it via *Settings → Security → Install from storage*. ReWeb trusts user-installed
+certificate authorities — see [SECURITY.md](SECURITY.md) for why that is a
+deliberate decision rather than a weakening.
+
+ISRG Root X1 reached Android's own trust store in **7.1.1 (API 25)**. Android 7.0
+and below are affected; 7.1.1 and above are not.
+
 ## Your WebView version matters more than your Android version
 
 The two are updated separately. An Android 7 phone with a current WebView will
@@ -133,16 +191,29 @@ Sign-in has the Google limitation above if you use Google auth; email-and-passwo
 sign-in works normally.
 
 ### Spotify Web
-Opens, and sign-in works. HTML5 audio, MediaSession metadata, background playback
-and notification controls are all supported.
 
-**Playback of protected tracks requires Widevine**, which most legacy devices do
-not have at a usable level. Diagnostics runs a real EME probe and reports what
-your device has. ReWeb does not circumvent DRM, and does not claim Spotify
-playback will work on any given Android 7 device — on many, it will not.
+**Measured on the Galaxy J2: it cannot work, and no browser setting changes that.**
 
-`spotify:` links open the Spotify app when installed; when it is not, ReWeb
-offers the `open.spotify.com` equivalent.
+Spotify serves an "Unsupported browser" page instead of the player. The cause is
+not the user agent — it was reproduced in desktop mode, presenting as Chrome 94 on
+Linux. ReWeb's EME probe on the same device returns *no Widevine CDM*, and the
+Spotify web player requires Widevine to decrypt every track it plays. Its gate is
+almost certainly that same check.
+
+So on a device without a Widevine CDM:
+
+- Switching between mobile and desktop user agents does not help.
+- Getting past the gate would not help either: there is nothing to decrypt with.
+- ReWeb will not attempt to circumvent DRM.
+
+*Diagnostics → Run compatibility test* gives the answer for any specific device in
+one line. Where a Widevine CDM **is** present, ReWeb supports what Spotify needs:
+HTML5 audio, background playback, audio focus, and notification controls (with the
+caveat that this WebView has no MediaSession API, so metadata falls back to the
+page title).
+
+`spotify:` links open the Spotify app when installed; when it is not, ReWeb offers
+the `open.spotify.com` equivalent.
 
 ### YouTube
 `m.youtube.com` generally works on a reasonably current WebView. Playback needs

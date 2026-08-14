@@ -143,11 +143,17 @@ object ErrorPages {
             }
         }.ifBlank { null }
 
+        // A frozen root store is the single most common TLS failure on the devices
+        // this app targets, so the interstitial explains that specific cause
+        // instead of repeating the generic warning.
+        val hint = CertificateAdvice.outdatedTrustStoreHint(context, issue.kind)
+            ?: context.getString(R.string.ssl_warning_hint)
+
         return document(
             accent = ACCENT_DANGER,
             title = context.getString(R.string.ssl_warning_title),
             body = context.getString(R.string.ssl_warning_body, UrlUtils.hostOf(issue.url) ?: issue.url, reason),
-            hint = context.getString(R.string.ssl_warning_hint),
+            hint = hint,
             url = issue.url,
             technicalDetail = detail,
             actionLabel = null,

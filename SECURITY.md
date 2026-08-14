@@ -27,6 +27,27 @@ exception is in force.
 `http://`. Cleartext is permitted at the platform level because a browser must be
 able to load a URL you explicitly typed, but such pages are marked "Not secure".
 
+**User-installed certificate authorities are trusted.** From API 24 an app stops
+trusting user-added roots unless it opts back in, and ReWeb opts back in.
+
+This is a deliberate decision, and on the target hardware it is the difference
+between a working browser and a useless one. Android 7.0 and older ship their root
+store inside the system image, where it is never updated, and it predates ISRG
+Root X1 — the Let's Encrypt root that now secures a large fraction of the web. On
+a verified Android 5.1.1 device this makes ordinary sites, Wikipedia among them,
+fail with "untrusted authority". Without this opt-in the user would have no
+remedy at all: they could install the missing root through Android Settings and
+ReWeb would still reject it.
+
+The trade-off is understood. A user-installed root can sign for any host, so a
+user who is tricked or coerced into installing one can be intercepted. That is
+equally true of Chrome, which trusts user roots for the same reason, and it
+requires a deliberate trip through Settings. Set against a browser that cannot
+open Wikipedia, and cannot be repaired by its owner, the balance is not close.
+
+Nothing else about validation changes: chain building and hostname verification
+are untouched, and failures still produce the interstitial described above.
+
 **Mixed content** uses `MIXED_CONTENT_COMPATIBILITY_MODE`: passive content loads,
 active content is blocked. `NEVER_ALLOW` breaks too much of the real web to be
 usable; `ALWAYS_ALLOW` would silently weaken every HTTPS page.

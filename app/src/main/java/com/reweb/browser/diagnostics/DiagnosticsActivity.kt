@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.view.MenuItem
+import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.reweb.browser.BuildConfig
@@ -91,6 +92,17 @@ class DiagnosticsActivity : AppCompatActivity() {
         )
         rows.valueRow("Live tabs allowed", TabManager.computeMaxLiveEngines(this).toString())
 
+        rows.valueRow(
+            getString(R.string.diagnostics_trust_store),
+            getString(
+                if (com.reweb.browser.browser.CertificateAdvice.deviceHasOutdatedTrustStore()) {
+                    R.string.diagnostics_trust_store_outdated
+                } else {
+                    R.string.diagnostics_trust_store_current
+                }
+            )
+        )
+
         rows.note(
             when {
                 info.chromiumMajorVersion == null -> getString(R.string.diagnostics_webview_unknown)
@@ -99,6 +111,12 @@ class DiagnosticsActivity : AppCompatActivity() {
                 else -> getString(R.string.diagnostics_webview_current)
             }
         )
+
+        // The engine and the trust store are updated by completely different
+        // mechanisms, so a device can have a modern Chromium and still fail TLS.
+        if (com.reweb.browser.browser.CertificateAdvice.deviceHasOutdatedTrustStore()) {
+            rows.note(getString(R.string.diagnostics_trust_store_note))
+        }
 
         rows.header(getString(R.string.diagnostics_capabilities))
         rows.note(getString(R.string.diagnostics_intro))
@@ -161,9 +179,11 @@ class DiagnosticsActivity : AppCompatActivity() {
         isRunning = true
         build()
 
-        // The probes need a document to run against. about:blank is enough and
-        // needs no network, so the test measures the engine rather than the link.
-        engine.loadUrl("about:blank")
+        // The probes need a document with a real, secure origin — see
+        // BrowserEngine.loadDocumentAtOrigin. The origin uses the reserved
+        // .invalid TLD so it can never collide with a real site, and nothing is
+        // fetched over the network: the test measures the engine, not the link.
+        engine.loadDocumentAtOrigin(PROBE_DOCUMENT, PROBE_ORIGIN)
         engine.view.postDelayed({
             CompatibilityTest(engine).run { checks ->
                 if (isFinishing || isDestroyed) return@run
@@ -182,11 +202,18 @@ class DiagnosticsActivity : AppCompatActivity() {
                 javaScriptEnabled = true,
                 loadImages = false,
                 userAgent = null,
-                incognito = true,
+                // Not incognito: a cookie/storage probe must run under the same
+                // conditions as ordinary browsing, or it measures the probe.
+                incognito = false,
                 allowPopups = false,
                 textZoomPercent = 100
             )
         )
+        // The engine must be attached to the window. A detached WebView has no
+        // surface, so graphics contexts (WebGL) fail to initialise and the test
+        // would report a GPU limitation the device does not actually have.
+        // 1x1 keeps it invisible without making it "gone", which would detach it.
+        addContentView(engine.view, FrameLayout.LayoutParams(1, 1))
         probeEngine = engine
         return engine
     }
@@ -228,6 +255,16 @@ class DiagnosticsActivity : AppCompatActivity() {
         const val EXTRA_RUN_TEST = "run_test"
 
         private const val DOCUMENT_SETTLE_MS = 300L
+
+        /**
+         * Reserved TLD, so this can never resolve to or collide with a real site.
+         * https so the document counts as a secure context.
+         */
+        private const val PROBE_ORIGIN = "https://compat.reweb.invalid/"
+
+        private const val PROBE_DOCUMENT =
+            "<!DOCTYPE html><html><head><meta charset=\"utf-8\">" +
+                "<title>ReWeb compatibility probe</title></head><body></body></html>"
 
         private val TEST_TARGETS = listOf(
             "Google" to "https://www.google.com",

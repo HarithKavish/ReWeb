@@ -151,6 +151,7 @@
     <string name="ssl_unknown">The certificate could not be validated.</string>
     <string name="ssl_issued_to">Issued to: %1$s</string>
     <string name="ssl_issued_by">Issued by: %1$s</string>
+    <string name="ssl_outdated_trust_store">This is almost certainly this device, not the site. Android 7.0 and older shipped their list of trusted certificate authorities in the system image, and it is never updated. That list does not include ISRG Root X1, the authority behind Let\'s Encrypt, which secures a large part of the web — so many perfectly legitimate sites now fail here.\n\nYou can fix this permanently: download the ISRG Root X1 certificate from letsencrypt.org/certificates (the self-signed DER or PEM file), then install it through Settings → Security → Install from storage. ReWeb trusts certificates you install yourself, the same way Chrome does.</string>
     <string name="ssl_proceed">Continue anyway</string>
     <string name="ssl_go_back">Go back (recommended)</string>
     <string name="ssl_proceed_confirm">Continue to %1$s without a verified certificate? This lasts until you close ReWeb.</string>
@@ -310,6 +311,10 @@
     <string name="diagnostics_webview_outdated">This WebView predates the baseline modern sites are built for (Chromium %1$d). Breakage on such sites is expected on this device.</string>
     <string name="diagnostics_webview_current">This WebView is recent enough for most modern sites.</string>
     <string name="diagnostics_webview_unknown">The Chromium version could not be determined.</string>
+    <string name="diagnostics_trust_store">Certificate trust store</string>
+    <string name="diagnostics_trust_store_outdated">Outdated</string>
+    <string name="diagnostics_trust_store_current">Current</string>
+    <string name="diagnostics_trust_store_note">This device\'s list of trusted certificate authorities is part of its system image and is never updated. It predates ISRG Root X1, the Let\'s Encrypt root, so many legitimate HTTPS sites — Wikipedia among them — will report an untrusted certificate. This is independent of the WebView version: the engine can be modern while the trust store is not.\n\nFix: download ISRG Root X1 from letsencrypt.org/certificates and install it via Settings → Security → Install from storage. ReWeb trusts certificates you install yourself.</string>
     <string name="diagnostics_test_targets">Compatibility test sites</string>
     <string name="diagnostics_test_targets_note">Opens the site in a new tab so you can see how it behaves on this device. ReWeb has no special handling for any of them.</string>
 

@@ -205,15 +205,50 @@ SharedPreferences.
 **Verified by building** — the project compiles, lints and packages an installable
 APK.
 
-**Not verified** — behaviour on physical legacy hardware. Nothing in this
-repository has been run on an Android 5, 6 or 7 device. Every statement about how
-a specific site behaves on such a device is a statement about what the code
-attempts, not a test result. The instrumentation tests in `app/src/androidTest`
-exist for exactly this and need a device or emulator to run:
+**Verified on physical hardware** — Samsung Galaxy J2 (SM-J200G), Android 5.1.1 /
+API 22, 913 MB RAM, WebView Chromium 94. Launch, browsing, tabs, menus, the
+Diagnostics screen and the capability probes were all exercised over adb. Results
+and limits are tabulated in [COMPATIBILITY.md](COMPATIBILITY.md#verified-on-real-hardware).
+
+That session found three defects that no amount of desk checking would have
+caught, and they are worth recording because each one is a category:
+
+1. **The launcher icon did not exist on API 22.** `mipmap/ic_launcher.xml` was a
+   `<layer-list>` wrapping a `<vector>`, and referencing a vector from inside
+   another drawable container is only supported from API 24. The app installed and
+   ran perfectly, but the launcher logged `Unable to create badged icon` and showed
+   no usable entry — indistinguishable, from the outside, from "it crashes on
+   startup". Fixed by shipping real PNG mipmaps at five densities and keeping the
+   adaptive icon for API 26+. *Category: a resource that fails only on old
+   platforms, in a component that is not the app.*
+
+2. **The compatibility test reported false failures.** The probe ran against
+   `about:blank`, which is an opaque, non-secure origin, so cookies, localStorage,
+   sessionStorage, `getUserMedia` and service workers all threw or vanished — five
+   FAILs that described the harness rather than the device. The probe engine was
+   also never attached to the window, which independently breaks WebGL context
+   creation. Fixed by [BrowserEngine.loadDocumentAtOrigin] under a synthetic https
+   origin and attaching the probe view. *Category: a measurement tool measuring
+   itself — the worst failure mode for the one feature whose entire purpose is
+   honesty.*
+
+3. **TLS failed on a large share of the web for a reason the UI did not explain.**
+   The device's root store predates ISRG Root X1, so Let's Encrypt sites — Wikipedia
+   included — fail with "untrusted authority". The warning was accurate and
+   useless. Now [CertificateAdvice] names the cause and the fix, Diagnostics reports
+   trust-store age as a first-class fact, and the app trusts user-installed roots so
+   the fix is actually possible. *Category: a correct error message that leaves the
+   user no action.*
+
+**Still not verified** — Android 6.0 and 7.x specifically, and any device with a
+Widevine CDM present. The instrumentation tests in `app/src/androidTest` need a
+device or emulator:
 
 ```sh
 ./gradlew connectedDebugAndroidTest
 ```
 
-The Diagnostics screen is the intended way to find out what any particular device
-can do, precisely because that cannot be predicted from here.
+The Diagnostics screen remains the intended way to find out what any particular
+device can do, precisely because that cannot be predicted from here — a point the
+Galaxy J2 made twice over, having a thoroughly modern engine and a ten-year-old
+list of certificate authorities at the same time.
