@@ -93,8 +93,13 @@ class CompatibilityTest(private val engine: BrowserEngine) {
             }
         }
 
-        val audioWorks = rows.any { it.id.startsWith("audio_") && it.result == CompatResult.PASS }
-        val videoWorks = rows.any { it.id.startsWith("video_") && it.result == CompatResult.PASS }
+        // Creating the CDM is the step that decides real playback; a passing
+        // capability query alone is not evidence that anything can be decrypted.
+        fun created(id: String) = rows.any { it.id == id && it.result == CompatResult.PASS }
+        val audioWorks = rows.any { it.id.startsWith("audio_") && it.result == CompatResult.PASS } &&
+            created("cdm_create_audio")
+        val videoWorks = rows.any { it.id.startsWith("video_") && it.result == CompatResult.PASS } &&
+            created("cdm_create_video")
 
         // The summary is what actually answers the user's question; the matrix
         // above it is the evidence.
@@ -102,14 +107,14 @@ class CompatibilityTest(private val engine: BrowserEngine) {
             CompatCheck(
                 "widevine_audio", LABEL_WIDEVINE_AUDIO,
                 if (audioWorks) CompatResult.PASS else CompatResult.FAIL,
-                if (audioWorks) "At least one configuration works: $AUDIO_USE can play"
-                else "No configuration accepted: $AUDIO_USE cannot play in this browser"
+                if (audioWorks) "Configuration accepted and CDM created: $AUDIO_USE can play"
+                else "$AUDIO_USE cannot play in this browser (see the steps below)"
             ),
             CompatCheck(
                 "widevine_video", LABEL_WIDEVINE_VIDEO,
                 if (videoWorks) CompatResult.PASS else CompatResult.FAIL,
-                if (videoWorks) "At least one configuration works: $VIDEO_USE can play"
-                else "No configuration accepted: $VIDEO_USE cannot play in this browser"
+                if (videoWorks) "Configuration accepted and CDM created: $VIDEO_USE can play"
+                else "$VIDEO_USE cannot play in this browser (see the steps below)"
             )
         )
         return summary + rows
@@ -186,7 +191,9 @@ class CompatibilityTest(private val engine: BrowserEngine) {
             "video_empty" to "· video, robustness \"\"",
             "video_sw_crypto" to "· video, SW_SECURE_CRYPTO",
             "video_sw_decode" to "· video, SW_SECURE_DECODE",
-            "video_hw_all" to "· video, HW_SECURE_ALL"
+            "video_hw_all" to "· video, HW_SECURE_ALL",
+            "cdm_create_audio" to "Create CDM instance (audio)",
+            "cdm_create_video" to "Create CDM instance (video)"
         )
 
         private val CHECK_DEFINITIONS = listOf(
@@ -345,6 +352,30 @@ class CompatibilityTest(private val engine: BrowserEngine) {
                   );
                 } catch (e) { window.__rewebEmeMatrix[key] = 'NO_API'; }
               }
+
+              // Granting access and actually instantiating the decryption module
+              // are separate steps, and only the second one touches the CDM
+              // process. A device can pass every capability query above and still
+              // fail here - which is exactly what a "Remote CDM connection error"
+              // looks like from inside the page. Asking only the first question
+              // reports DRM as working on a device that cannot decrypt anything.
+              function probeCdmCreation(key, config) {
+                try {
+                  if (!navigator.requestMediaKeySystemAccess) {
+                    window.__rewebEmeMatrix[key] = 'NO_API';
+                    return;
+                  }
+                  window.__rewebEmeMatrix[key] = 'PENDING';
+                  navigator.requestMediaKeySystemAccess('com.widevine.alpha', [config])
+                    .then(function (access) { return access.createMediaKeys(); })
+                    .then(
+                      function () { window.__rewebEmeMatrix[key] = 'SUPPORTED'; },
+                      function (e) {
+                        window.__rewebEmeMatrix[key] = 'UNSUPPORTED:' + (e && e.name ? e.name : '?');
+                      }
+                    );
+                } catch (e) { window.__rewebEmeMatrix[key] = 'NO_API'; }
+              }
               function audioConfig(robustness) {
                 var cap = { contentType: 'audio/mp4; codecs="mp4a.40.2"' };
                 if (robustness !== null) { cap.robustness = robustness; }
@@ -363,6 +394,8 @@ class CompatibilityTest(private val engine: BrowserEngine) {
               probeEme('video_sw_crypto', videoConfig('SW_SECURE_CRYPTO'));
               probeEme('video_sw_decode', videoConfig('SW_SECURE_DECODE'));
               probeEme('video_hw_all', videoConfig('HW_SECURE_ALL'));
+              probeCdmCreation('cdm_create_audio', audioConfig('SW_SECURE_CRYPTO'));
+              probeCdmCreation('cdm_create_video', videoConfig('SW_SECURE_CRYPTO'));
 
               return JSON.stringify(out);
             })();

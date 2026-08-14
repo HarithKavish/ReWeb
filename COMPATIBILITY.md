@@ -232,20 +232,40 @@ player** renders correctly and is the better target on old engines.
 art and metadata but exposes no player, pushing users to the app. That is a
 product decision, not a limitation of the browser.
 
-**3. Full playback stops at the CDM, not at Widevine.** This device has working
-Widevine: `MediaDrm` opens a session, the security level is **L3**, and every
-software EME configuration is accepted by the browser (see the DRM section of
-Diagnostics). Spotify's player initialises, requests a licence — and the browser
-logs:
+**3. Full playback stops inside the device's Widevine module.** Reaching that
+conclusion took removing three other suspects first, each of which was a real
+problem in its own right:
+
+- *Permissions.* Spotify requests protected media while its player initialises.
+  ReWeb re-prompted on every load and the dialog made the player disable itself
+  (`HarmonyError: local player is disabled`). Fixed by remembering protected-media
+  grants per origin.
+- *Provisioning.* The device had no Widevine certificate — `ay64.dat2` was absent,
+  so no licence request could ever succeed. ReWeb can now repair this from
+  *Diagnostics → Repair DRM provisioning*, and doing so completed successfully.
+- *The CDM itself.* It instantiates correctly; `createMediaKeys()` passes for both
+  audio and video.
+
+With all three resolved, the failure moved to its final resting place — key
+request generation, inside the CDM, before anything reaches Spotify's servers:
 
 ```
-[ERROR:mojo_cdm.cc] Remote CDM connection error
+E/WVCdm: CdmLicense::PrepareKeyRequest: retrieved certificate not of type service, 0
+E/WVCdm: CdmEngine::GenerateKeyRequest: key request generation failed, sts = 3
+EMEError: Failed to execute 'generateRequest' on 'MediaKeySession'
 ```
 
-The content decryption module cannot be reached, so the licence request fails and
-Spotify falls back to the unencrypted 30-second preview, which plays with audio.
-The platform's DRM is fine; the WebView's route to it is not, on this device and
-version. A browser cannot supply its own CDM, so there is no app-side fix.
+The device's Widevine module identifies itself as:
+
+```
+I/WVCdm: Level3 Library Dec 11 2014 16:13:16
+```
+
+An **eleven-year-old L3 CDM**. Modern licence flows hand the CDM a *service
+certificate* for privacy-mode key requests, and this one cannot parse what it is
+given — "not of type service". It fails before a single byte reaches the licence
+server, so there is nothing on the network side to fix, and nothing an app can
+substitute: the CDM is part of the platform.
 
 **What this means in practice:** on Android 5.x you can sign in, browse your
 library, and hear previews. Full-catalogue playback needs the Spotify app, which
