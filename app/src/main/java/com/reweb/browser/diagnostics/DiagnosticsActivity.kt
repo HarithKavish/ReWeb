@@ -20,6 +20,9 @@ import com.reweb.browser.browser.TabManager
 import com.reweb.browser.databinding.ActivityScrollBinding
 import com.reweb.browser.engine.BrowserEngine
 import com.reweb.browser.engine.EngineConfiguration
+import com.reweb.browser.engine.WebPermissionRequest
+import com.reweb.browser.engine.WebPermissionKind
+import com.reweb.browser.engine.EngineClient
 import com.reweb.browser.engine.webview.SystemWebViewEngine
 import com.reweb.browser.ui.RowBuilder
 
@@ -128,6 +131,8 @@ class DiagnosticsActivity : AppCompatActivity() {
             com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.CURRENT -> Unit
         }
 
+        buildDrmSection()
+
         rows.header(getString(R.string.diagnostics_capabilities))
         rows.note(getString(R.string.diagnostics_intro))
         rows.row(
@@ -159,6 +164,48 @@ class DiagnosticsActivity : AppCompatActivity() {
         }
 
         buildTestTargets()
+    }
+
+    /**
+     * Platform DRM facts, read from MediaDrm rather than from inside a page.
+     *
+     * Separating this from the in-page EME probe is the whole point: a device can
+     * hold a Widevine library it cannot use, and can be able to use it natively
+     * while the WebView still refuses. Those are three different problems with
+     * three different answers, and only one of them is repairable.
+     */
+    private fun buildDrmSection() {
+        val drm = DrmCapabilities.read()
+        rows.header(getString(R.string.diagnostics_drm))
+
+        rows.valueRow(
+            getString(R.string.diagnostics_drm_scheme),
+            getString(if (drm.schemeSupported) R.string.value_yes else R.string.value_no)
+        )
+        if (drm.schemeSupported) {
+            rows.valueRow(
+                getString(R.string.diagnostics_drm_level),
+                drm.securityLevel ?: getString(R.string.value_unknown)
+            )
+            drm.vendor?.let { rows.valueRow(getString(R.string.diagnostics_drm_vendor), it) }
+            drm.version?.let { rows.valueRow(getString(R.string.diagnostics_drm_version), it) }
+            rows.valueRow(
+                getString(R.string.diagnostics_drm_session),
+                getString(if (drm.sessionOpened) R.string.value_yes else R.string.value_no)
+            )
+        }
+
+        rows.note(
+            when {
+                !drm.schemeSupported -> getString(R.string.diagnostics_drm_absent)
+                drm.needsProvisioning -> getString(R.string.diagnostics_drm_unprovisioned)
+                drm.isUsableByPlatform -> getString(R.string.diagnostics_drm_platform_ok)
+                else -> getString(
+                    R.string.diagnostics_drm_failed,
+                    drm.failure ?: getString(R.string.value_unknown)
+                )
+            }
+        )
     }
 
     /**
@@ -219,6 +266,24 @@ class DiagnosticsActivity : AppCompatActivity() {
                 textZoomPercent = 100
             )
         )
+        // Without a client, every permission the probe requests is denied by
+        // default — including RESOURCE_PROTECTED_MEDIA_ID, which WebView requires
+        // the embedder to grant before it will expose Widevine to EME. A probe
+        // that denies its own DRM permission then reports the refusal as a device
+        // limitation, which is exactly backwards.
+        //
+        // Only protected media is granted, and only to the synthetic probe origin.
+        // Camera, microphone and location are still refused: measuring DRM needs
+        // this, measuring nothing else does.
+        engine.client = object : EngineClient {
+            override fun onPermissionRequested(request: WebPermissionRequest) {
+                val drmOnly = request.kinds.filterTo(mutableSetOf()) {
+                    it == WebPermissionKind.PROTECTED_MEDIA
+                }
+                if (drmOnly.isEmpty()) request.deny() else request.grant(drmOnly)
+            }
+        }
+
         // The engine must be attached to the window. A detached WebView has no
         // surface, so graphics contexts (WebGL) fail to initialise and the test
         // would report a GPU limitation the device does not actually have.

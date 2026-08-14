@@ -46,39 +46,73 @@ class CompatibilityTest(private val engine: BrowserEngine) {
             // whatever they settled on. A timeout yields UNKNOWN, never a
             // fabricated PASS.
             Handler(Looper.getMainLooper()).postDelayed({
-                engine.evaluateJavaScript("window.__rewebEmeAudio || 'PENDING'") { audioRaw ->
-                    engine.evaluateJavaScript("window.__rewebEmeVideo || 'PENDING'") { videoRaw ->
-                        onComplete(
-                            synchronous +
-                                emeCheck("widevine_audio", LABEL_WIDEVINE_AUDIO, audioRaw, AUDIO_USE) +
-                                emeCheck("widevine_video", LABEL_WIDEVINE_VIDEO, videoRaw, VIDEO_USE)
-                        )
-                    }
+                engine.evaluateJavaScript("JSON.stringify(window.__rewebEmeMatrix || {})") { matrixRaw ->
+                    onComplete(synchronous + emeChecks(matrixRaw))
                 }
             }, EME_TIMEOUT_MS)
         }
     }
 
-    private fun emeCheck(id: String, label: String, raw: String?, use: String): CompatCheck {
-        val value = raw?.trim()?.trim('"') ?: "PENDING"
-        return when (value) {
-            "SUPPORTED" -> CompatCheck(
-                id, label, CompatResult.PASS,
-                "Widevine CDM available for $use (L1/L3 level is not detectable from a page)"
-            )
-            "UNSUPPORTED" -> CompatCheck(
-                id, label, CompatResult.FAIL,
-                "CDM refused this configuration: $use will not play"
-            )
-            "NO_API" -> CompatCheck(
-                id, label, CompatResult.FAIL,
-                "Encrypted Media Extensions absent from this WebView"
-            )
-            else -> CompatCheck(
-                id, label, CompatResult.UNKNOWN,
-                "Probe did not complete in ${EME_TIMEOUT_MS}ms"
-            )
+    /**
+     * Turns the robustness matrix into one row per configuration, plus a summary
+     * row per media type stating the practical consequence.
+     */
+    private fun emeChecks(raw: String?): List<CompatCheck> {
+        val matrix = runCatching {
+            val text = raw?.trim().orEmpty()
+            val unwrapped = if (text.startsWith("\"")) {
+                org.json.JSONTokener(text).nextValue().toString()
+            } else {
+                text
+            }
+            JSONObject(unwrapped)
+        }.getOrNull()
+
+        if (matrix == null || matrix.length() == 0) {
+            return EME_CONFIGS.map { (key, label) ->
+                CompatCheck(key, label, CompatResult.UNKNOWN, "Probe produced no result")
+            }
         }
+
+        val rows = EME_CONFIGS.map { (key, label) ->
+            val value = matrix.optString(key, "PENDING")
+            when {
+                value == "SUPPORTED" -> CompatCheck(
+                    key, label, CompatResult.PASS, "CDM accepted this configuration"
+                )
+                value.startsWith("UNSUPPORTED") -> CompatCheck(
+                    key, label, CompatResult.FAIL,
+                    "CDM refused (${value.substringAfter(':', "rejected")})"
+                )
+                value == "NO_API" -> CompatCheck(
+                    key, label, CompatResult.FAIL, "Encrypted Media Extensions absent from this WebView"
+                )
+                else -> CompatCheck(
+                    key, label, CompatResult.UNKNOWN, "Probe did not settle in ${EME_TIMEOUT_MS}ms"
+                )
+            }
+        }
+
+        val audioWorks = rows.any { it.id.startsWith("audio_") && it.result == CompatResult.PASS }
+        val videoWorks = rows.any { it.id.startsWith("video_") && it.result == CompatResult.PASS }
+
+        // The summary is what actually answers the user's question; the matrix
+        // above it is the evidence.
+        val summary = listOf(
+            CompatCheck(
+                "widevine_audio", LABEL_WIDEVINE_AUDIO,
+                if (audioWorks) CompatResult.PASS else CompatResult.FAIL,
+                if (audioWorks) "At least one configuration works: $AUDIO_USE can play"
+                else "No configuration accepted: $AUDIO_USE cannot play in this browser"
+            ),
+            CompatCheck(
+                "widevine_video", LABEL_WIDEVINE_VIDEO,
+                if (videoWorks) CompatResult.PASS else CompatResult.FAIL,
+                if (videoWorks) "At least one configuration works: $VIDEO_USE can play"
+                else "No configuration accepted: $VIDEO_USE cannot play in this browser"
+            )
+        )
+        return summary + rows
     }
 
     private fun parse(raw: String?): List<CompatCheck> {
@@ -138,6 +172,22 @@ class CompatibilityTest(private val engine: BrowserEngine) {
         private const val LABEL_WIDEVINE_VIDEO = "Widevine DRM (video)"
         private const val AUDIO_USE = "protected music streaming (Spotify, Apple Music)"
         private const val VIDEO_USE = "protected video streaming (Netflix, Prime Video)"
+
+        /**
+         * Every EME configuration worth asking about. Robustness is varied because
+         * Chromium treats an unspecified level as its own case and may reject it
+         * while accepting an explicit one.
+         */
+        private val EME_CONFIGS = listOf(
+            "audio_unspecified" to "· audio, robustness unspecified",
+            "audio_empty" to "· audio, robustness \"\"",
+            "audio_sw_crypto" to "· audio, SW_SECURE_CRYPTO",
+            "video_unspecified" to "· video, robustness unspecified",
+            "video_empty" to "· video, robustness \"\"",
+            "video_sw_crypto" to "· video, SW_SECURE_CRYPTO",
+            "video_sw_decode" to "· video, SW_SECURE_DECODE",
+            "video_hw_all" to "· video, HW_SECURE_ALL"
+        )
 
         private val CHECK_DEFINITIONS = listOf(
             "javascript" to LABEL_JAVASCRIPT,
@@ -271,31 +321,48 @@ class CompatibilityTest(private val engine: BrowserEngine) {
                   grid ? 'display:grid supported' : 'display:grid unsupported: modern layouts will break');
               } catch (e) { set('cssgrid', null, 'CSS.supports unavailable'); }
 
-              // Asynchronous: resolved into globals the app reads separately.
+              // Asynchronous: resolved into a matrix the app reads separately.
               //
-              // Audio and video are probed independently and on purpose. A device
-              // can hold a Widevine licence for audio and refuse video, and that
-              // distinction decides whether Spotify works while Netflix does not.
-              // Asking only about video reports a FAIL that is wrong for audio.
-              window.__rewebEmeAudio = 'PENDING';
-              window.__rewebEmeVideo = 'PENDING';
-              function probeEme(target, config) {
+              // Both the media type AND the robustness level are varied, because
+              // Chromium treats an unspecified robustness as its own configuration
+              // and can reject it on hardware that would accept an explicit one.
+              // Probing a single combination therefore cannot distinguish "this
+              // device has no usable CDM" from "I asked the wrong question" - a
+              // mistake this probe has already made twice.
+              window.__rewebEmeMatrix = {};
+              function probeEme(key, config) {
                 try {
-                  if (!navigator.requestMediaKeySystemAccess) { window[target] = 'NO_API'; return; }
+                  if (!navigator.requestMediaKeySystemAccess) {
+                    window.__rewebEmeMatrix[key] = 'NO_API';
+                    return;
+                  }
+                  window.__rewebEmeMatrix[key] = 'PENDING';
                   navigator.requestMediaKeySystemAccess('com.widevine.alpha', [config]).then(
-                    function () { window[target] = 'SUPPORTED'; },
-                    function () { window[target] = 'UNSUPPORTED'; }
+                    function () { window.__rewebEmeMatrix[key] = 'SUPPORTED'; },
+                    function (e) {
+                      window.__rewebEmeMatrix[key] = 'UNSUPPORTED:' + (e && e.name ? e.name : '?');
+                    }
                   );
-                } catch (e) { window[target] = 'NO_API'; }
+                } catch (e) { window.__rewebEmeMatrix[key] = 'NO_API'; }
               }
-              probeEme('__rewebEmeAudio', {
-                initDataTypes: ['cenc'],
-                audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }]
-              });
-              probeEme('__rewebEmeVideo', {
-                initDataTypes: ['cenc'],
-                videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
-              });
+              function audioConfig(robustness) {
+                var cap = { contentType: 'audio/mp4; codecs="mp4a.40.2"' };
+                if (robustness !== null) { cap.robustness = robustness; }
+                return { initDataTypes: ['cenc'], audioCapabilities: [cap] };
+              }
+              function videoConfig(robustness) {
+                var cap = { contentType: 'video/mp4; codecs="avc1.42E01E"' };
+                if (robustness !== null) { cap.robustness = robustness; }
+                return { initDataTypes: ['cenc'], videoCapabilities: [cap] };
+              }
+              probeEme('audio_unspecified', audioConfig(null));
+              probeEme('audio_empty', audioConfig(''));
+              probeEme('audio_sw_crypto', audioConfig('SW_SECURE_CRYPTO'));
+              probeEme('video_unspecified', videoConfig(null));
+              probeEme('video_empty', videoConfig(''));
+              probeEme('video_sw_crypto', videoConfig('SW_SECURE_CRYPTO'));
+              probeEme('video_sw_decode', videoConfig('SW_SECURE_DECODE'));
+              probeEme('video_hw_all', videoConfig('HW_SECURE_ALL'));
 
               return JSON.stringify(out);
             })();

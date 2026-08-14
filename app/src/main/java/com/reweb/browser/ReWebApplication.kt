@@ -9,6 +9,7 @@ import com.reweb.browser.downloads.DownloadStore
 import com.reweb.browser.history.HistoryStore
 import com.reweb.browser.privacy.PrivacyManager
 import com.reweb.browser.settings.Settings
+import com.reweb.browser.settings.SitePermissionStore
 import com.reweb.browser.settings.SiteSettingsStore
 import com.reweb.browser.webapp.WebAppStore
 
@@ -23,6 +24,7 @@ class ReWebApplication : Application() {
 
     val settings: Settings by lazy { Settings(this) }
     val siteSettings: SiteSettingsStore by lazy { SiteSettingsStore(this) }
+    val sitePermissions: SitePermissionStore by lazy { SitePermissionStore(this) }
     val historyStore: HistoryStore by lazy { HistoryStore(this) }
     val bookmarkStore: BookmarkStore by lazy { BookmarkStore(this) }
     val downloadStore: DownloadStore by lazy { DownloadStore(this) }

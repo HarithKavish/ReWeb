@@ -75,6 +75,8 @@ class PrivacyManager(
         }
 
         if (selection.siteStorage) {
+            // Remembered protected-media grants are site data too.
+            com.reweb.browser.settings.SitePermissionStore(context).clear()
             // Covers localStorage, sessionStorage, IndexedDB and the legacy Web SQL
             // area for every origin the WebView knows about.
             WebStorage.getInstance().deleteAllData()

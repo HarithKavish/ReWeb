@@ -47,6 +47,7 @@ import com.reweb.browser.engine.WebPermissionRequest
 import com.reweb.browser.intents.ExternalIntents
 import com.reweb.browser.media.MediaPlaybackService
 import com.reweb.browser.settings.SettingsActivity
+import com.reweb.browser.settings.SitePermissionStore
 import com.reweb.browser.webapp.WebAppInstaller
 import com.reweb.browser.webapp.WebAppsActivity
 
@@ -327,6 +328,19 @@ class BrowserActivity : AppCompatActivity(), BrowserController.Host, MediaPlayba
         fileChooser.start(request, response)
 
     override fun requestWebPermission(request: WebPermissionRequest) {
+        // Protected media that this origin has already been granted is answered
+        // immediately. A streaming player asks for EME while it is initialising,
+        // and a dialog sitting in front of that request long enough makes the
+        // player disable itself - so re-prompting is not merely annoying here,
+        // it breaks playback. Nothing else is ever auto-granted.
+        if (request.kinds.isNotEmpty() &&
+            request.kinds.all { SitePermissionStore.isRememberable(it) } &&
+            app.sitePermissions.isProtectedMediaGranted(request.origin)
+        ) {
+            request.grant(request.kinds)
+            return
+        }
+
         val origin = request.origin.ifBlank { getString(R.string.value_unknown) }
         val labels = request.kinds.joinToString(", ") { labelFor(it) }
 
@@ -336,6 +350,9 @@ class BrowserActivity : AppCompatActivity(), BrowserController.Host, MediaPlayba
                 getString(R.string.permission_body, labels) + "\n\n" + getString(R.string.permission_note)
             )
             .setPositiveButton(R.string.permission_allow) { _, _ ->
+                if (request.kinds.any { SitePermissionStore.isRememberable(it) }) {
+                    app.sitePermissions.rememberProtectedMedia(request.origin, granted = true)
+                }
                 permissions.fulfill(request, request.kinds)
             }
             .setNegativeButton(R.string.permission_deny) { _, _ -> request.deny() }

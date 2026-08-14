@@ -130,7 +130,7 @@
     <string name="permission_allow">Allow</string>
     <string name="permission_deny">Deny</string>
     <string name="permission_body">This site is asking for: %1$s</string>
-    <string name="permission_note">ReWeb does not remember this answer. The site will ask again next time.</string>
+    <string name="permission_note">ReWeb does not remember camera, microphone or location answers — sites must ask every time. Protected media playback is remembered for this site, because players fail if asked repeatedly.</string>
     <string name="permission_denied_by_android">Android denied the permission, so the site was denied too</string>
 
     <!-- JS dialogs -->
@@ -317,6 +317,16 @@
     <string name="diagnostics_trust_store_repaired">Repaired</string>
     <string name="diagnostics_trust_store_repaired_note">This device shipped without ISRG Root X1, but you have installed it yourself, so Let\'s Encrypt sites work normally. Nothing further is needed.</string>
     <string name="diagnostics_trust_store_note">This device\'s list of trusted certificate authorities is part of its system image and is never updated. It predates ISRG Root X1, the Let\'s Encrypt root, so many legitimate HTTPS sites — Wikipedia among them — will report an untrusted certificate. This is independent of the WebView version: the engine can be modern while the trust store is not.\n\nFix: download ISRG Root X1 from letsencrypt.org/certificates and install it via Settings → Security → Install from storage. ReWeb trusts certificates you install yourself.</string>
+    <string name="diagnostics_drm">Protected media (DRM)</string>
+    <string name="diagnostics_drm_scheme">Widevine on this device</string>
+    <string name="diagnostics_drm_level">Security level</string>
+    <string name="diagnostics_drm_vendor">DRM vendor</string>
+    <string name="diagnostics_drm_version">DRM version</string>
+    <string name="diagnostics_drm_session">Platform can open a session</string>
+    <string name="diagnostics_drm_absent">This device has no Widevine support at all, so no protected streaming service can play here in any browser or app.</string>
+    <string name="diagnostics_drm_unprovisioned">Widevine is present but this device has never been provisioned. Provisioning is a one-time exchange with Google\'s servers, and it can fail on devices whose Play Services no longer work. This is the one DRM problem that may be repairable.</string>
+    <string name="diagnostics_drm_platform_ok">The platform itself can use Widevine. If the browser checks below still fail, the limitation is in this device\'s WebView rather than in its DRM hardware — and no app-side change can work around that, because a browser cannot supply its own content decryption module.</string>
+    <string name="diagnostics_drm_failed">Widevine is present but could not be used: %1$s</string>
     <string name="diagnostics_test_targets">Compatibility test sites</string>
     <string name="diagnostics_test_targets_note">Opens the site in a new tab so you can see how it behaves on this device. ReWeb has no special handling for any of them.</string>
 

@@ -206,28 +206,58 @@ sign-in works normally.
 
 ### Spotify Web
 
-**Measured on the Galaxy J2: it cannot work, and no browser setting changes that.**
+**Measured end to end on the Galaxy J2 (Android 5.1.1, WebView 95, Premium account).**
 
-Spotify serves an "Unsupported browser" page instead of the player. The cause is
-not the user agent — it was reproduced in desktop mode, presenting as Chrome 94 on
-Linux. ReWeb's EME probe on the same device returns *no Widevine CDM*, and the
-Spotify web player requires Widevine to decrypt every track it plays. Its gate is
-almost certainly that same check.
+| Step | Result |
+|---|---|
+| Load `open.spotify.com` | Works |
+| Log in | Works — via `accounts.spotify.com`, which serves the mobile UA normally |
+| Browse library, playlists, artwork | Works |
+| "Unsupported browser" gate | **Bypassable** — it is a user-agent *version* check |
+| Embed player (`/embed/track/...`) | Renders perfectly |
+| **30-second previews** | **Play** |
+| **Full DRM tracks** | **Do not play** |
 
-So on a device without a Widevine CDM:
+Three separate things had to be understood here, and each was initially
+misdiagnosed.
 
-- Switching between mobile and desktop user agents does not help.
-- Getting past the gate would not help either: there is nothing to decrypt with.
-- ReWeb will not attempt to circumvent DRM.
+**1. The "Unsupported browser" wall is a version check.** Spotify's desktop player
+refuses the device's real Chromium 95 user agent. Presenting a newer desktop
+Chrome via *Settings → Compatibility → Default user agent → Custom* gets straight
+past it. Note the trade-off: the full desktop player then renders badly, because
+Chromium 95 does not implement the CSS the modern bundle assumes. The **embed
+player** renders correctly and is the better target on old engines.
 
-*Diagnostics → Run compatibility test* gives the answer for any specific device in
-one line. Where a Widevine CDM **is** present, ReWeb supports what Spotify needs:
-HTML5 audio, background playback, audio focus, and notification controls (with the
-caveat that this WebView has no MediaSession API, so metadata falls back to the
-page title).
+**2. Mobile web is browse-only by design.** Spotify's mobile site shows lyrics,
+art and metadata but exposes no player, pushing users to the app. That is a
+product decision, not a limitation of the browser.
 
-`spotify:` links open the Spotify app when installed; when it is not, ReWeb offers
-the `open.spotify.com` equivalent.
+**3. Full playback stops at the CDM, not at Widevine.** This device has working
+Widevine: `MediaDrm` opens a session, the security level is **L3**, and every
+software EME configuration is accepted by the browser (see the DRM section of
+Diagnostics). Spotify's player initialises, requests a licence — and the browser
+logs:
+
+```
+[ERROR:mojo_cdm.cc] Remote CDM connection error
+```
+
+The content decryption module cannot be reached, so the licence request fails and
+Spotify falls back to the unencrypted 30-second preview, which plays with audio.
+The platform's DRM is fine; the WebView's route to it is not, on this device and
+version. A browser cannot supply its own CDM, so there is no app-side fix.
+
+**What this means in practice:** on Android 5.x you can sign in, browse your
+library, and hear previews. Full-catalogue playback needs the Spotify app, which
+talks to the platform DRM directly instead of going through a WebView.
+
+One ReWeb bug was found and fixed here. Spotify requests protected-media
+permission while its player is initialising; ReWeb re-prompted on every load, and
+a modal dialog in front of that request made the player disable itself outright
+(`HarmonyError: local player is disabled`). Protected-media grants are now
+remembered per origin, which is what moved the failure from "player disabled" to
+"licence request attempted". Camera, microphone and location are still never
+remembered — see [SECURITY.md](SECURITY.md).
 
 ### YouTube
 `m.youtube.com` generally works on a reasonably current WebView. Playback needs
