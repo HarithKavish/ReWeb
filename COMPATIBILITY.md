@@ -72,7 +72,8 @@ Everything below this heading was measured on a physical device, not inferred.
 | **Widevine DRM** | **FAIL** | No CDM. DRM streaming cannot play. |
 | **MediaSession API** | **FAIL** | Absent from WebView; notification falls back to the page title. |
 | **WebGL** | **FAIL** | Context creation failed. |
-| **Certificate trust store** | **Outdated** | See below — the biggest practical problem. |
+| **Certificate trust store** | **Outdated** | Fixed on-device by installing ISRG Root X1; see below. |
+| WebView package integrity | **Was corrupt** | `libwebviewchromium.so` had bit-rotted, crashing every WebView app with SIGBUS. See "When every WebView app dies instantly". |
 
 Two things stand out.
 
@@ -108,6 +109,11 @@ deliberate decision rather than a weakening.
 
 ISRG Root X1 reached Android's own trust store in **7.1.1 (API 25)**. Android 7.0
 and below are affected; 7.1.1 and above are not.
+
+**Confirmed on the Galaxy J2:** after installing ISRG Root X1 through Settings,
+wikipedia.org loads normally with a padlock, where it previously failed with
+"untrusted authority". Note the device needs a screen lock set before Android will
+allow a certificate to be installed at all.
 
 ## Your WebView version matters more than your Android version
 
@@ -297,6 +303,56 @@ certificate warning is an interstitial requiring two explicit confirmations, and
 any exception lasts only until the app is closed.
 
 ---
+
+## When every WebView app dies instantly
+
+If ReWeb starts and vanishes with no error — and other WebView-based apps do the
+same — the problem is usually not the app. On the verified Galaxy J2 this turned
+out to be a **corrupt WebView APK**, and the symptom is distinctive:
+
+```
+I/WebViewFactory:   Loading com.google.android.webview version 94.0.4606.85
+I/cr_LibraryLoader: Successfully loaded native library
+I/Zygote:           Process 8040 exited due to signal (7)     <- SIGBUS
+```
+
+The native library loads, then the process dies on signal 7 with no Java
+exception, because nothing in Java is running yet.
+
+What made this hard to spot: the file **read back without any I/O error**. The
+flash returned data happily; the data was simply wrong. Only a CRC check exposed
+it:
+
+```sh
+adb pull /data/app/com.google.android.webview-1/base.apk
+unzip -t base.apk
+#   testing: lib/armeabi-v7a/libwebviewchromium.so
+#   error:  invalid compressed data to inflate
+#   bad CRC ef0c65a9  (should be 50c560dc)
+```
+
+Exactly one entry of that 47 MB archive had rotted — the 61 MB Chromium library —
+and Chromium SIGBUSes when execution reaches the damaged pages. Reinstalling from
+the device's own copy cannot help, because the source is the corrupt file.
+
+**Recovery**, in order of preference:
+
+1. **Sideload a fresh Android System WebView.** For Android 5.x the last supported
+   build is **95.0.4638.74**; pick the ABI matching your device (`armeabi-v7a` for
+   most legacy handsets). Install with `adb install`, or open the APK on the
+   device. This restores a modern engine.
+2. **Fall back to the ROM's built-in WebView** by removing the update:
+   ```sh
+   adb uninstall com.google.android.webview
+   ```
+   This reverts to whatever shipped in `/system` — on the Galaxy J2, Chromium 56.
+   Everything starts working again, but a Chromium-56 engine is well below the
+   modern baseline and ReWeb will show its compatibility banner accordingly.
+
+This is worth knowing about generally: these devices have had the same flash cells
+holding the same files for a decade, and a WebView package installed in 2021 has
+had a long time to develop a bad block. Note that the Play Store cannot repair it
+on a device where the Play Store itself no longer works.
 
 ## Reporting a problem
 
