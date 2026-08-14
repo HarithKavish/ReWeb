@@ -3,6 +3,7 @@ package com.reweb.browser.browser
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import com.reweb.browser.engine.SslIssueKind
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -73,11 +74,32 @@ class CertificateAdviceTest {
     }
 
     @Test
-    fun `device trust store classification matches the API boundary`() {
-        assertTrue(CertificateAdvice.deviceHasOutdatedTrustStore(21))
-        assertTrue(CertificateAdvice.deviceHasOutdatedTrustStore(22))
-        assertTrue(CertificateAdvice.deviceHasOutdatedTrustStore(24))
-        assertFalse(CertificateAdvice.deviceHasOutdatedTrustStore(25))
-        assertFalse(CertificateAdvice.deviceHasOutdatedTrustStore(34))
+    fun `shipped trust store classification matches the API boundary`() {
+        // ISRG Root X1 reached Android in 7.1.1 (API 25).
+        assertTrue(CertificateAdvice.hasOutdatedTrustStore(21))
+        assertTrue(CertificateAdvice.hasOutdatedTrustStore(22))
+        assertTrue(CertificateAdvice.hasOutdatedTrustStore(24))
+        assertFalse(CertificateAdvice.hasOutdatedTrustStore(25))
+        assertFalse(CertificateAdvice.hasOutdatedTrustStore(34))
+    }
+
+    @Test
+    fun `a modern device is reported as current regardless of the store contents`() {
+        assertEquals(
+            CertificateAdvice.TrustStoreStatus.CURRENT,
+            CertificateAdvice.trustStoreStatus(sdkInt = 34)
+        )
+    }
+
+    @Test
+    fun `an affected device reports outdated or repaired, never current`() {
+        // Which of the two depends on whether the host running the test happens to
+        // trust ISRG Root X1; both are correct answers, CURRENT never is.
+        val status = CertificateAdvice.trustStoreStatus(sdkInt = 22)
+        assertTrue(
+            "expected OUTDATED or REPAIRED, got $status",
+            status == CertificateAdvice.TrustStoreStatus.OUTDATED ||
+                status == CertificateAdvice.TrustStoreStatus.REPAIRED
+        )
     }
 }

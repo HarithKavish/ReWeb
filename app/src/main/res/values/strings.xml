@@ -314,6 +314,8 @@
     <string name="diagnostics_trust_store">Certificate trust store</string>
     <string name="diagnostics_trust_store_outdated">Outdated</string>
     <string name="diagnostics_trust_store_current">Current</string>
+    <string name="diagnostics_trust_store_repaired">Repaired</string>
+    <string name="diagnostics_trust_store_repaired_note">This device shipped without ISRG Root X1, but you have installed it yourself, so Let\'s Encrypt sites work normally. Nothing further is needed.</string>
     <string name="diagnostics_trust_store_note">This device\'s list of trusted certificate authorities is part of its system image and is never updated. It predates ISRG Root X1, the Let\'s Encrypt root, so many legitimate HTTPS sites — Wikipedia among them — will report an untrusted certificate. This is independent of the WebView version: the engine can be modern while the trust store is not.\n\nFix: download ISRG Root X1 from letsencrypt.org/certificates and install it via Settings → Security → Install from storage. ReWeb trusts certificates you install yourself.</string>
     <string name="diagnostics_test_targets">Compatibility test sites</string>
     <string name="diagnostics_test_targets_note">Opens the site in a new tab so you can see how it behaves on this device. ReWeb has no special handling for any of them.</string>

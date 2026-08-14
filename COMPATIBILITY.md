@@ -75,6 +75,14 @@ Everything below this heading was measured on a physical device, not inferred.
 | **Certificate trust store** | **Outdated** | Fixed on-device by installing ISRG Root X1; see below. |
 | WebView package integrity | **Was corrupt** | `libwebviewchromium.so` had bit-rotted, crashing every WebView app with SIGBUS. See "When every WebView app dies instantly". |
 
+After sideloading a clean **WebView 95.0.4638.74**, the device runs stably and
+the compatibility banner correctly disappears (95 clears the modern baseline).
+Re-running the capability test on 95 changed none of the failures above:
+**Widevine, MediaSession and WebGL fail on both Chromium 56 and 95**, which
+establishes them as device and WebView-embedder limits rather than engine-version
+limits. In particular, Spotify Web cannot play on this handset at any engine
+version, because there is no Widevine CDM to decrypt with.
+
 Two things stand out.
 
 **The engine is fine; the trust store is not.** Chromium 94 is well past ReWeb's

@@ -92,13 +92,17 @@ class DiagnosticsActivity : AppCompatActivity() {
         )
         rows.valueRow("Live tabs allowed", TabManager.computeMaxLiveEngines(this).toString())
 
+        val trustStore = com.reweb.browser.browser.CertificateAdvice.trustStoreStatus()
         rows.valueRow(
             getString(R.string.diagnostics_trust_store),
             getString(
-                if (com.reweb.browser.browser.CertificateAdvice.deviceHasOutdatedTrustStore()) {
-                    R.string.diagnostics_trust_store_outdated
-                } else {
-                    R.string.diagnostics_trust_store_current
+                when (trustStore) {
+                    com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.CURRENT ->
+                        R.string.diagnostics_trust_store_current
+                    com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.REPAIRED ->
+                        R.string.diagnostics_trust_store_repaired
+                    com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.OUTDATED ->
+                        R.string.diagnostics_trust_store_outdated
                 }
             )
         )
@@ -114,8 +118,14 @@ class DiagnosticsActivity : AppCompatActivity() {
 
         // The engine and the trust store are updated by completely different
         // mechanisms, so a device can have a modern Chromium and still fail TLS.
-        if (com.reweb.browser.browser.CertificateAdvice.deviceHasOutdatedTrustStore()) {
-            rows.note(getString(R.string.diagnostics_trust_store_note))
+        // Only nag while the root is actually missing: repeating the instructions
+        // to someone who has already followed them is just noise.
+        when (trustStore) {
+            com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.OUTDATED ->
+                rows.note(getString(R.string.diagnostics_trust_store_note))
+            com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.REPAIRED ->
+                rows.note(getString(R.string.diagnostics_trust_store_repaired_note))
+            com.reweb.browser.browser.CertificateAdvice.TrustStoreStatus.CURRENT -> Unit
         }
 
         rows.header(getString(R.string.diagnostics_capabilities))
