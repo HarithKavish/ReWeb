@@ -53,6 +53,19 @@ data class DrmCapabilities(
 ) {
     val isUsableByPlatform: Boolean get() = schemeSupported && sessionOpened
 
+    /**
+     * Build year of the Widevine module, parsed from its version or description.
+     *
+     * Widevine reports a build date rather than a capability list, so age is the
+     * only signal available for "predates server certificates". Null when it
+     * cannot be determined, which callers must treat as "assume modern".
+     */
+    val moduleBuildYear: Int?
+        get() = listOfNotNull(description, version, vendor)
+            .firstNotNullOfOrNull { text ->
+                Regex("""\b(19|20)\d{2}\b""").find(text)?.value?.toIntOrNull()
+            }
+
     companion object {
         /** The Widevine key system UUID, as registered with the DASH-IF. */
         val WIDEVINE_UUID: UUID = UUID(-0x121074568629b532L, -0x5c37d8232ae2de13L)

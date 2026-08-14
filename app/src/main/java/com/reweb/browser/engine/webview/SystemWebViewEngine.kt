@@ -33,6 +33,7 @@ class SystemWebViewEngine(context: Context) : BrowserEngine {
     private val mediaBridge = MediaStateBridge(this)
 
     private var userAgentOverride: String? = null
+    private var legacyCdmShimInstalled = false
     private var destroyed = false
     private var lastProgress = 0
     private var lastFavicon: Bitmap? = null
@@ -68,6 +69,11 @@ class SystemWebViewEngine(context: Context) : BrowserEngine {
         if (BuildConfig.VERBOSE_LOGGING && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             WebView.setWebContentsDebuggingEnabled(true)
         }
+
+        // Devices whose Widevine module predates server certificates cannot obtain
+        // a licence from sites that use them; see LegacyCdmShim for why answering
+        // "not supported" is both accurate and spec-defined here.
+        legacyCdmShimInstalled = LegacyCdmShim.installIfNeeded(webView, drmModuleBuildYear())
     }
 
     /**
@@ -299,6 +305,18 @@ class SystemWebViewEngine(context: Context) : BrowserEngine {
     // --- Internal hooks used by the WebViewClient/WebChromeClient ---
 
     internal val isDestroyed: Boolean get() = destroyed
+
+    /** Whether the legacy-CDM compatibility shim is active, for Diagnostics. */
+    internal val hasLegacyCdmShim: Boolean get() = legacyCdmShimInstalled
+
+    /**
+     * Read once per engine rather than cached globally: MediaDrm construction is
+     * cheap next to a WebView, and a stale global would survive a device whose
+     * WebView provider changed underneath us.
+     */
+    private fun drmModuleBuildYear(): Int? =
+        runCatching { com.reweb.browser.diagnostics.DrmCapabilities.read().moduleBuildYear }
+            .getOrNull()
 
     internal fun updateProgress(progress: Int) {
         lastProgress = progress
