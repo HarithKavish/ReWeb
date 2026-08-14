@@ -206,55 +206,74 @@ sign-in works normally.
 
 ### Spotify Web
 
-**On a current Android device: works fully.** Sign-in, library, playback of the
-full catalogue. Verified on Android 16 with the very first build of ReWeb, before
-any DRM-specific work existed — which is the useful data point, because it means
-nothing in the app was ever the obstacle.
+**On a current Android device: works fully.** Verified on Android 16 with the very
+first build of ReWeb, before any DRM-specific work existed. Nothing in the app was
+ever the obstacle.
 
-**On the Android 5.1.1 test device: everything except decrypting protected
-audio.** Sign-in, full library browsing, lyrics, artwork, the embed player, and
-preview playback with audio all work. Full tracks play their unencrypted lead-in —
-about seven seconds — and then stop when the encrypted audio begins.
+**On the Android 5.1.1 test device: everything except decrypting protected audio.**
+Sign-in, full library, playlists, lyrics, artwork, search, the embed player and
+preview playback all work. Full tracks play their unencrypted lead-in — about
+seven seconds — then stop.
 
-Three separate obstacles were found and removed before reaching the real one:
+#### The control experiment
 
-- **Mobile web is browse-only by design.** Spotify's mobile site shows lyrics and
-  metadata but exposes no player. Sign in via `accounts.spotify.com`, which serves
-  the mobile UA normally.
-- **The "Unsupported browser" gate is a user-agent version check.** Spotify refuses
-  the device's real Chromium 95 UA. A newer desktop Chrome string via
-  *Settings → Compatibility → Default user agent → Custom* passes it. The full
-  player then renders badly, because Chromium 95 lacks the CSS the modern bundle
-  assumes; the **embed player** renders correctly and is the better target.
+The decisive evidence, run twice on a freshly installed app minutes apart:
+
+| Page | Sets a service certificate? | `PrepareKeyRequest` |
+|---|---|---|
+| DASH-IF Widevine reference player | No | **Succeeds** (`nonce=3764786544`) |
+| Spotify | **Yes** | **Fails** — `retrieved certificate not of type service` |
+
+The CDM generates Widevine key requests perfectly well. It fails only when a site
+hands it a **service certificate** for privacy-mode licensing. Spotify does this;
+the DASH-IF player does not.
+
+The module identifies itself as:
+
+```
+I/WVCdm: Level3 Library Dec 11 2014 16:13:16
+```
+
+An eleven-year-old L3 build that cannot parse the certificate format Spotify's
+current licence flow uses. Generation fails **locally, before any network call**,
+so there is nothing server-side to negotiate and no user agent, permission or
+setting that changes it.
+
+#### Why no browser can fix this
+
+The CDM belongs to the platform and is shared by every browser on the device.
+Chrome 95 on the same handset also cannot play Spotify — and gets *less* far than
+ReWeb, because Spotify's version gate rejects Chrome's real user agent outright,
+so it never reaches the player at all. ReWeb, via a Custom user agent, passes the
+gate, loads the library and queues tracks; it then meets the same CDM wall.
+
+A browser cannot supply its own content decryption module, so this is the end of
+the line on this hardware.
+
+#### Two obstacles that were real, and fixed
+
+Before reaching the CDM, two genuine ReWeb bugs stood in the way and are worth
+recording because both are general:
+
 - **Re-prompting for protected media disabled the player.** Spotify requests EME
   while initialising, and a modal dialog in front of that request made it give up
-  (`HarmonyError: local player is disabled`). ReWeb now remembers protected-media
-  grants per origin. This was a real bug and the fix is worth having regardless.
+  entirely (`HarmonyError: local player is disabled`). Protected-media grants are
+  now remembered per origin.
+- **The "Unsupported browser" gate is a user-agent version check**, not a
+  capability check. A newer desktop Chrome string via *Settings → Compatibility →
+  Default user agent → Custom* passes it. The full player then renders poorly,
+  because Chromium 95 lacks the CSS the modern bundle assumes; zooming out makes
+  it usable, and the embed player renders correctly.
 
-What remains is inside the device's Widevine module:
+#### A caution
 
-```
-E/WVCdm: CdmLicense::PrepareKeyRequest: retrieved certificate not of type service
-E/WVCdm: CdmEngine::GenerateKeyRequest: key request generation failed, sts = 3
-E/WVCdm: Decrypt error result in session sid3 during unencrypted block: 5
-```
-
-The module reports itself as `Level3 Library Dec 11 2014`. Modern licence flows
-hand the CDM a *service certificate* for privacy-mode key requests, and an
-eleven-year-old L3 build cannot parse it. Key request generation fails before
-anything reaches Spotify, so there is no network-side fix and no app-side
-substitute — the CDM belongs to the platform. The "unencrypted block" line is the
-clear lead-in playing, which is exactly the few seconds users observe.
-
-**A caution recorded deliberately.** ReWeb briefly shipped a "Repair DRM
-provisioning" action, on the theory that a missing device certificate
-(`ay64.dat2`) was the cause. It ran successfully, and the licence failure
-afterwards was *worse* than before — from a request being generated and rejected,
-to no request being generated at all. Whether the repair caused that or merely
-coincided with a different code path was never established, and `MediaDrm` offers
-no way to undo provisioning. The feature has been removed. Diagnostics still
-*reports* an unprovisioned device, because that is a real and useful fact; it no
-longer offers to write to a device's DRM state on a hypothesis.
+ReWeb briefly shipped a "Repair DRM provisioning" action, on the theory that a
+missing device certificate was the cause. It has been removed. It was built on a
+hypothesis, `MediaDrm` offers no way to undo provisioning, and a later clean
+install showed the DRM store had been healthy all along — so the feature solved
+nothing and risked leaving a device in a state its owner could not recover.
+Diagnostics still *reports* provisioning state, because that is a useful fact; it
+no longer offers to write to a device's DRM store.
 
 ### YouTube
 `m.youtube.com` generally works on a reasonably current WebView. Playback needs
