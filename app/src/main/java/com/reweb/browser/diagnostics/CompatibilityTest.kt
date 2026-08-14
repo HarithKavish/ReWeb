@@ -42,33 +42,40 @@ class CompatibilityTest(private val engine: BrowserEngine) {
     fun run(onComplete: (List<CompatCheck>) -> Unit) {
         engine.evaluateJavaScript(PROBE_SCRIPT) { raw ->
             val synchronous = parse(raw)
-            // The EME probe is a promise; give it a moment, then collect whatever
-            // it settled on. A timeout yields UNKNOWN, never a fabricated PASS.
+            // The EME probes are promises; give them a moment, then collect
+            // whatever they settled on. A timeout yields UNKNOWN, never a
+            // fabricated PASS.
             Handler(Looper.getMainLooper()).postDelayed({
-                engine.evaluateJavaScript("window.__rewebEme || 'PENDING'") { emeRaw ->
-                    onComplete(synchronous + emeCheck(emeRaw))
+                engine.evaluateJavaScript("window.__rewebEmeAudio || 'PENDING'") { audioRaw ->
+                    engine.evaluateJavaScript("window.__rewebEmeVideo || 'PENDING'") { videoRaw ->
+                        onComplete(
+                            synchronous +
+                                emeCheck("widevine_audio", LABEL_WIDEVINE_AUDIO, audioRaw, AUDIO_USE) +
+                                emeCheck("widevine_video", LABEL_WIDEVINE_VIDEO, videoRaw, VIDEO_USE)
+                        )
+                    }
                 }
             }, EME_TIMEOUT_MS)
         }
     }
 
-    private fun emeCheck(raw: String?): CompatCheck {
+    private fun emeCheck(id: String, label: String, raw: String?, use: String): CompatCheck {
         val value = raw?.trim()?.trim('"') ?: "PENDING"
         return when (value) {
             "SUPPORTED" -> CompatCheck(
-                "widevine", LABEL_WIDEVINE, CompatResult.PASS,
-                "Widevine CDM reported available (L1/L3 level not detectable from the page)"
+                id, label, CompatResult.PASS,
+                "Widevine CDM available for $use (L1/L3 level is not detectable from a page)"
             )
             "UNSUPPORTED" -> CompatCheck(
-                "widevine", LABEL_WIDEVINE, CompatResult.FAIL,
-                "No Widevine CDM: DRM-protected streaming will not play"
+                id, label, CompatResult.FAIL,
+                "CDM refused this configuration: $use will not play"
             )
             "NO_API" -> CompatCheck(
-                "widevine", LABEL_WIDEVINE, CompatResult.FAIL,
+                id, label, CompatResult.FAIL,
                 "Encrypted Media Extensions absent from this WebView"
             )
             else -> CompatCheck(
-                "widevine", LABEL_WIDEVINE, CompatResult.UNKNOWN,
+                id, label, CompatResult.UNKNOWN,
                 "Probe did not complete in ${EME_TIMEOUT_MS}ms"
             )
         }
@@ -121,7 +128,16 @@ class CompatibilityTest(private val engine: BrowserEngine) {
         private const val EME_TIMEOUT_MS = 1500L
 
         private const val LABEL_JAVASCRIPT = "JavaScript"
-        private const val LABEL_WIDEVINE = "Widevine DRM"
+
+        /**
+         * Audio and video Widevine are reported separately because a device can
+         * license one and refuse the other, and that difference decides whether a
+         * music service works while a video service does not.
+         */
+        private const val LABEL_WIDEVINE_AUDIO = "Widevine DRM (audio)"
+        private const val LABEL_WIDEVINE_VIDEO = "Widevine DRM (video)"
+        private const val AUDIO_USE = "protected music streaming (Spotify, Apple Music)"
+        private const val VIDEO_USE = "protected video streaming (Netflix, Prime Video)"
 
         private val CHECK_DEFINITIONS = listOf(
             "javascript" to LABEL_JAVASCRIPT,
@@ -255,19 +271,31 @@ class CompatibilityTest(private val engine: BrowserEngine) {
                   grid ? 'display:grid supported' : 'display:grid unsupported: modern layouts will break');
               } catch (e) { set('cssgrid', null, 'CSS.supports unavailable'); }
 
-              // Asynchronous: resolved into a global that the app reads separately.
-              window.__rewebEme = 'PENDING';
-              try {
-                if (navigator.requestMediaKeySystemAccess) {
-                  navigator.requestMediaKeySystemAccess('com.widevine.alpha', [{
-                    initDataTypes: ['cenc'],
-                    videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
-                  }]).then(function () { window.__rewebEme = 'SUPPORTED'; },
-                           function () { window.__rewebEme = 'UNSUPPORTED'; });
-                } else {
-                  window.__rewebEme = 'NO_API';
-                }
-              } catch (e) { window.__rewebEme = 'NO_API'; }
+              // Asynchronous: resolved into globals the app reads separately.
+              //
+              // Audio and video are probed independently and on purpose. A device
+              // can hold a Widevine licence for audio and refuse video, and that
+              // distinction decides whether Spotify works while Netflix does not.
+              // Asking only about video reports a FAIL that is wrong for audio.
+              window.__rewebEmeAudio = 'PENDING';
+              window.__rewebEmeVideo = 'PENDING';
+              function probeEme(target, config) {
+                try {
+                  if (!navigator.requestMediaKeySystemAccess) { window[target] = 'NO_API'; return; }
+                  navigator.requestMediaKeySystemAccess('com.widevine.alpha', [config]).then(
+                    function () { window[target] = 'SUPPORTED'; },
+                    function () { window[target] = 'UNSUPPORTED'; }
+                  );
+                } catch (e) { window[target] = 'NO_API'; }
+              }
+              probeEme('__rewebEmeAudio', {
+                initDataTypes: ['cenc'],
+                audioCapabilities: [{ contentType: 'audio/mp4; codecs="mp4a.40.2"' }]
+              });
+              probeEme('__rewebEmeVideo', {
+                initDataTypes: ['cenc'],
+                videoCapabilities: [{ contentType: 'video/mp4; codecs="avc1.42E01E"' }]
+              });
 
               return JSON.stringify(out);
             })();
