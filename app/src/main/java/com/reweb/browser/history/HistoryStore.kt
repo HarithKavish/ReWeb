@@ -35,9 +35,14 @@ class HistoryStore(context: Context) {
         val db = helper.writableDatabase
         val now = System.currentTimeMillis()
 
+        // The id is the tie-break, and it is load-bearing rather than cosmetic:
+        // several visits can share a millisecond, and ordering by timestamp alone
+        // makes "the most recent row" ambiguous. SQLite is then free to return an
+        // older row, and this method would update that instead of inserting -
+        // silently losing a visit. AUTOINCREMENT ids give a total order.
         db.rawQuery(
             "SELECT ${ReWebDatabase.COLUMN_ID}, ${ReWebDatabase.COLUMN_URL} FROM ${ReWebDatabase.TABLE_HISTORY} " +
-                "ORDER BY ${ReWebDatabase.COLUMN_VISITED_AT} DESC LIMIT 1",
+                "ORDER BY ${ReWebDatabase.COLUMN_VISITED_AT} DESC, ${ReWebDatabase.COLUMN_ID} DESC LIMIT 1",
             null
         ).use { cursor ->
             if (cursor.moveToFirst() && cursor.getString(1) == url) {
@@ -73,7 +78,7 @@ class HistoryStore(context: Context) {
                 "WHERE ${ReWebDatabase.COLUMN_ID} = (" +
                 "  SELECT ${ReWebDatabase.COLUMN_ID} FROM ${ReWebDatabase.TABLE_HISTORY} " +
                 "  WHERE ${ReWebDatabase.COLUMN_URL} = ? " +
-                "  ORDER BY ${ReWebDatabase.COLUMN_VISITED_AT} DESC LIMIT 1)",
+                "  ORDER BY ${ReWebDatabase.COLUMN_VISITED_AT} DESC, ${ReWebDatabase.COLUMN_ID} DESC LIMIT 1)",
             arrayOf(title, url)
         )
     }
@@ -104,7 +109,7 @@ class HistoryStore(context: Context) {
             args,
             null,
             null,
-            "${ReWebDatabase.COLUMN_VISITED_AT} DESC",
+            "${ReWebDatabase.COLUMN_VISITED_AT} DESC, ${ReWebDatabase.COLUMN_ID} DESC",
             limit.toString()
         ).use { cursor ->
             buildList {
@@ -129,7 +134,7 @@ class HistoryStore(context: Context) {
             "SELECT MAX(${ReWebDatabase.COLUMN_ID}), ${ReWebDatabase.COLUMN_URL}, " +
                 "${ReWebDatabase.COLUMN_TITLE}, MAX(${ReWebDatabase.COLUMN_VISITED_AT}) AS v " +
                 "FROM ${ReWebDatabase.TABLE_HISTORY} GROUP BY ${ReWebDatabase.COLUMN_URL} " +
-                "ORDER BY v DESC LIMIT ?",
+                "ORDER BY v DESC, MAX(${ReWebDatabase.COLUMN_ID}) DESC LIMIT ?",
             arrayOf(limit.toString())
         ).use { cursor ->
             buildList {
@@ -172,7 +177,7 @@ class HistoryStore(context: Context) {
         db.execSQL(
             "DELETE FROM ${ReWebDatabase.TABLE_HISTORY} WHERE ${ReWebDatabase.COLUMN_ID} NOT IN (" +
                 "SELECT ${ReWebDatabase.COLUMN_ID} FROM ${ReWebDatabase.TABLE_HISTORY} " +
-                "ORDER BY ${ReWebDatabase.COLUMN_VISITED_AT} DESC LIMIT $MAX_ENTRIES)"
+                "ORDER BY ${ReWebDatabase.COLUMN_VISITED_AT} DESC, ${ReWebDatabase.COLUMN_ID} DESC LIMIT $MAX_ENTRIES)"
         )
     }
 

@@ -80,6 +80,34 @@ class StoresTest {
     }
 
     @Test
+    fun `visits within the same millisecond keep a stable order`() {
+        // Regression: "is this the most recent entry?" used to order by timestamp
+        // alone. Rapid visits share a millisecond, the tie resolved arbitrarily,
+        // and a visit could be collapsed into the wrong row and lost. Slow devices
+        // hid this; a fast machine reproduces it immediately.
+        val store = HistoryStore(context)
+        repeat(30) { index ->
+            store.recordVisit("https://a.example", "A$index")
+            store.recordVisit("https://b.example", "B$index")
+        }
+        // Strict alternation means nothing may ever be collapsed.
+        assertEquals(60, store.count())
+
+        val recent = store.recent()
+        assertEquals("https://b.example", recent[0].url)
+        assertEquals("https://a.example", recent[1].url)
+    }
+
+    @Test
+    fun `rapid identical visits still collapse into one row`() {
+        // The other half of the same behaviour: reloading must not flood history,
+        // even when every visit lands in the same millisecond.
+        val store = HistoryStore(context)
+        repeat(30) { store.recordVisit("https://a.example", "A") }
+        assertEquals(1, store.count())
+    }
+
+    @Test
     fun `in-app and non-navigable URLs never enter history`() {
         val store = HistoryStore(context)
         store.recordVisit("about:blank", "blank")
