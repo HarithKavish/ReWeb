@@ -1,0 +1,26 @@
+*.iml
+.gradle/
+.idea/
+.DS_Store
+build/
+captures/
+.externalNativeBuild
+.cxx
+
+# Machine-specific SDK path.
+local.properties
+
+# Build outputs - CI publishes these as artifacts instead of Git storing them.
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Signing material must never be committed.
+*.keystore
+*.jks
+keystore.properties
+secrets.properties
+
+# Logs
+*.log

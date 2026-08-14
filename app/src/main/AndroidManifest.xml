@@ -1,0 +1,226 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <!--
+      The three permissions below are requested at runtime ONLY when a web page
+      asks for the matching capability and the user approves the in-app prompt.
+      They are never requested at startup. See PermissionCoordinator.
+    -->
+    <uses-permission android:name="android.permission.CAMERA" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+
+    <!--
+      Legacy download target. On API 29+ downloads go through MediaStore /
+      DownloadManager's public Downloads collection, which needs no permission.
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+
+    <!-- Media notification for background web audio. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission
+        android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
+        tools:targetApi="34" />
+    <uses-permission
+        android:name="android.permission.POST_NOTIFICATIONS"
+        tools:targetApi="33" />
+
+    <!-- All hardware is optional: ReWeb must install on the cheapest legacy handset. -->
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+    <uses-feature android:name="android.hardware.location" android:required="false" />
+    <uses-feature android:name="android.hardware.touchscreen" android:required="false" />
+
+    <!--
+      Package visibility (API 30+). ReWeb must be able to discover an external
+      browser for the OAuth handoff and to resolve mailto:/tel:/geo: targets.
+    -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
+        </intent>
+        <intent>
+            <action android:name="android.support.customtabs.action.CustomTabsService" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="*/*" />
+        </intent>
+        <intent>
+            <action android:name="android.media.action.IMAGE_CAPTURE" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="mailto" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.DIAL" />
+            <data android:scheme="tel" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".ReWebApplication"
+        android:allowBackup="false"
+        android:fullBackupContent="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:largeHeap="false"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="true"
+        android:networkSecurityConfig="@xml/network_security_config"
+        android:theme="@style/Theme.ReWeb"
+        tools:targetApi="31">
+
+        <activity
+            android:name=".browser.BrowserActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|density|uiMode"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ReWeb">
+
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+            <!-- Act as a general-purpose browser for web links. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:scheme="about" />
+            </intent-filter>
+
+            <!-- Required so Android lists ReWeb under "Browser app" defaults. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="http" />
+                <data android:scheme="https" />
+                <data android:host="*" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.WEB_SEARCH" />
+                <category android:name="android.intent.category.DEFAULT" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="text/plain" />
+            </intent-filter>
+        </activity>
+
+        <!--
+          Installed web apps run in their own task so they appear as separate
+          entries in Recents, the way a real installed app does.
+        -->
+        <activity
+            android:name=".webapp.WebAppActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity="com.reweb.browser.webapp"
+            android:excludeFromRecents="false"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden|smallestScreenSize|density|uiMode"
+            android:windowSoftInputMode="adjustResize"
+            android:theme="@style/Theme.ReWeb" />
+
+        <!--
+          Receives the OAuth redirect when an authorization flow was handed off to
+          the external browser / Custom Tab. See auth/AuthHandoff.kt.
+        -->
+        <activity
+            android:name=".auth.AuthRedirectActivity"
+            android:exported="true"
+            android:launchMode="singleTask"
+            android:noHistory="true"
+            android:excludeFromRecents="true"
+            android:theme="@style/Theme.ReWeb.Transparent">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="reweb" android:host="auth" />
+            </intent-filter>
+        </activity>
+
+        <activity
+            android:name=".settings.SettingsActivity"
+            android:exported="false"
+            android:label="@string/settings"
+            android:parentActivityName=".browser.BrowserActivity"
+            android:theme="@style/Theme.ReWeb.Settings" />
+
+        <activity
+            android:name=".bookmarks.BookmarksActivity"
+            android:exported="false"
+            android:label="@string/bookmarks"
+            android:parentActivityName=".browser.BrowserActivity"
+            android:theme="@style/Theme.ReWeb.Settings" />
+
+        <activity
+            android:name=".history.HistoryActivity"
+            android:exported="false"
+            android:label="@string/history"
+            android:parentActivityName=".browser.BrowserActivity"
+            android:theme="@style/Theme.ReWeb.Settings" />
+
+        <activity
+            android:name=".webapp.WebAppsActivity"
+            android:exported="false"
+            android:label="@string/web_apps"
+            android:parentActivityName=".browser.BrowserActivity"
+            android:theme="@style/Theme.ReWeb.Settings" />
+
+        <activity
+            android:name=".downloads.DownloadsActivity"
+            android:exported="false"
+            android:label="@string/downloads"
+            android:parentActivityName=".browser.BrowserActivity"
+            android:theme="@style/Theme.ReWeb.Settings" />
+
+        <activity
+            android:name=".diagnostics.DiagnosticsActivity"
+            android:exported="false"
+            android:label="@string/diagnostics"
+            android:parentActivityName=".browser.BrowserActivity"
+            android:theme="@style/Theme.ReWeb.Settings" />
+
+        <!-- Keeps web audio alive and shows lock-screen transport controls. -->
+        <service
+            android:name=".media.MediaPlaybackService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback"
+            tools:targetApi="29" />
+
+        <!-- Shares completed downloads without granting broad file access. -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.fileprovider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+    </application>
+</manifest>

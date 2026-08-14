@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="80dp"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_horizontal"
+    android:orientation="vertical"
+    android:paddingTop="8dp"
+    android:paddingBottom="8dp">
+
+    <ImageView
+        android:id="@+id/icon"
+        android:layout_width="@dimen/webapp_icon_size"
+        android:layout_height="@dimen/webapp_icon_size"
+        android:contentDescription="@null"
+        android:src="@drawable/ic_globe" />
+
+    <TextView
+        android:id="@+id/name"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:gravity="center_horizontal"
+        android:maxLines="2"
+        android:paddingTop="4dp"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="12sp"
+        tools:text="ChatGPT" />
+</LinearLayout>

@@ -1,0 +1,16 @@
+# Normalise line endings so a checkout on a Linux CI runner behaves the same as
+# one on a Windows developer machine.
+* text=auto eol=lf
+
+# gradlew MUST stay LF. Committed with CRLF it fails on the GitHub Actions Ubuntu
+# runner with "bad interpreter: No such file or directory".
+gradlew text eol=lf
+gradlew.bat text eol=crlf
+
+# Binary: never touch these.
+gradle/wrapper/gradle-wrapper.jar binary
+*.png binary
+*.jar binary
+*.apk binary
+*.keystore binary
+*.jks binary

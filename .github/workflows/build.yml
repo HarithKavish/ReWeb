@@ -1,0 +1,103 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run redundant.
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Lint, test and build debug APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          # AGP 8.x requires JDK 17. The app itself still targets API 21 devices;
+          # the JDK version only governs the build.
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          cache-read-only: ${{ github.ref != 'refs/heads/main' }}
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      # Each step below is separate so a failure names the stage that broke.
+      # None of them swallow errors: there is no `|| true` anywhere in this file,
+      # so a lint error, a failing test or a broken build fails the workflow.
+      - name: Run Android Lint
+        run: ./gradlew lintDebug --no-daemon --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew testDebugUnitTest --no-daemon --stacktrace
+
+      - name: Assemble debug APK
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Report APK size
+        run: ./gradlew reportApkSize --no-daemon
+
+      - name: Locate APK
+        id: locate
+        run: |
+          set -euo pipefail
+          APK_PATH="$(find app/build/outputs/apk/debug -name '*.apk' -type f | head -n 1)"
+          if [ -z "$APK_PATH" ]; then
+            echo "::error::No APK was produced under app/build/outputs/apk/debug"
+            exit 1
+          fi
+          echo "Found APK at $APK_PATH"
+          # Publish under a predictable name regardless of the variant filename.
+          mkdir -p artifacts
+          cp "$APK_PATH" artifacts/reweb-debug.apk
+          echo "apk_path=artifacts/reweb-debug.apk" >> "$GITHUB_OUTPUT"
+          ls -la artifacts/
+          echo "### Debug APK" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "| File | Size |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|------|------|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| reweb-debug.apk | $(du -h artifacts/reweb-debug.apk | cut -f1) |" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: reweb-debug-apk
+          path: ${{ steps.locate.outputs.apk_path }}
+          if-no-files-found: error
+          retention-days: 30
+
+      # Reports are uploaded even on failure, because that is exactly when the
+      # lint HTML and the test XML are worth reading.
+      - name: Upload lint and test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: reweb-reports
+          path: |
+            app/build/reports/lint-results-debug.html
+            app/build/reports/tests/testDebugUnitTest/
+            app/build/test-results/testDebugUnitTest/
+          if-no-files-found: ignore
+          retention-days: 14

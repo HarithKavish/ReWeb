@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 48dp is the platform's minimum comfortable touch target. -->
+    <dimen name="toolbar_button_size">48dp</dimen>
+    <dimen name="toolbar_button_padding">12dp</dimen>
+    <dimen name="toolbar_height">52dp</dimen>
+    <dimen name="progress_height">3dp</dimen>
+    <dimen name="screen_padding">16dp</dimen>
+    <dimen name="list_item_min_height">56dp</dimen>
+    <dimen name="favicon_size">28dp</dimen>
+    <dimen name="webapp_icon_size">56dp</dimen>
+    <dimen name="tab_thumbnail_size">40dp</dimen>
+</resources>

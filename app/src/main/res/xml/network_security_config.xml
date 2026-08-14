@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ReWeb is a general-purpose browser, so it must be able to load a URL the user
+  explicitly typed even when that URL is plain http://. Refusing cleartext at the
+  platform level would make http:// sites simply fail with an opaque error.
+
+  What this config does NOT do:
+    * It does not disable certificate validation. The system trust anchors are
+      used unchanged, and SSL errors are surfaced to the user as an interstitial
+      (see engine/webview/ReWebWebViewClient.onReceivedSslError).
+    * It does not add a debug-only "trust user CAs everywhere" override.
+    * It never downgrades an https:// URL to http://.
+
+  Cleartext pages are marked "Not secure" in the URL bar via SecurityState.
+-->
+<network-security-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+</network-security-config>

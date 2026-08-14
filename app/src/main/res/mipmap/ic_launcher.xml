@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher icon for API 21-25, which have no adaptive-icon support. A layer-list
+  over a solid colour keeps this vector-only: no PNG density buckets to ship, and
+  APK size is a stated goal of this project.
+-->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:drawable="@color/launcher_background" />
+    <item
+        android:drawable="@drawable/ic_launcher_foreground"
+        android:gravity="center" />
+</layer-list>

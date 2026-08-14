@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ReWeb</string>
+
+    <!-- Toolbar / navigation -->
+    <string name="action_back">Back</string>
+    <string name="action_forward">Forward</string>
+    <string name="action_reload">Reload</string>
+    <string name="action_stop">Stop loading</string>
+    <string name="action_home">Home</string>
+    <string name="action_tabs">Tabs</string>
+    <string name="action_menu">Menu</string>
+    <string name="action_close">Close</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_ok">OK</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_open">Open</string>
+    <string name="action_try_again">Try again</string>
+    <string name="action_reload_page">Reload page</string>
+    <string name="action_copy">Copy</string>
+    <string name="action_share">Share</string>
+    <string name="action_done">Done</string>
+
+    <string name="url_bar_hint">Search or enter address</string>
+    <string name="url_bar_hint_private">Search or enter address (private)</string>
+    <string name="security_secure">Connection is encrypted</string>
+    <string name="security_insecure">Not secure — this page uses http://</string>
+    <string name="security_warning">Certificate warning was bypassed for this site</string>
+    <string name="security_neutral">ReWeb page</string>
+
+    <!-- Menu -->
+    <string name="menu_new_tab">New tab</string>
+    <string name="menu_new_private_tab">New private tab</string>
+    <string name="menu_bookmark_add">Add bookmark</string>
+    <string name="menu_bookmark_remove">Remove bookmark</string>
+    <string name="menu_bookmarks">Bookmarks</string>
+    <string name="menu_history">History</string>
+    <string name="menu_downloads">Downloads</string>
+    <string name="menu_install_web_app">Install web app</string>
+    <string name="menu_web_apps">Web apps</string>
+    <string name="menu_desktop_site">Desktop site</string>
+    <string name="menu_share">Share page</string>
+    <string name="menu_copy_link">Copy link</string>
+    <string name="menu_open_in_browser">Open in another browser</string>
+    <string name="menu_settings">Settings</string>
+    <string name="menu_diagnostics">Diagnostics</string>
+
+    <!-- Screens -->
+    <string name="settings">Settings</string>
+    <string name="bookmarks">Bookmarks</string>
+    <string name="history">History</string>
+    <string name="downloads">Downloads</string>
+    <string name="web_apps">Web apps</string>
+    <string name="diagnostics">Diagnostics</string>
+
+    <!-- Home screen -->
+    <string name="home_search_hint">Search the web</string>
+    <string name="home_web_apps">Installed web apps</string>
+    <string name="home_bookmarks">Bookmarks</string>
+    <string name="home_recent">Recent sites</string>
+    <string name="home_empty_web_apps">No web apps yet. Open a site and choose “Install web app”.</string>
+    <string name="home_empty_bookmarks">No bookmarks yet.</string>
+    <string name="home_empty_recent">Nothing visited yet.</string>
+    <string name="home_private_title">Private tab</string>
+    <string name="home_private_body">Pages you visit in this tab are kept out of your history, and session cookies are cleared when the last private tab closes.</string>
+    <string name="home_private_caveat">This is not anonymity. Your network, your internet provider and the sites you visit can still see your traffic. ReWeb has no VPN and does not hide your address.</string>
+
+    <!-- Tabs -->
+    <string name="tabs_title">Tabs (%1$d)</string>
+    <string name="tabs_new">New tab</string>
+    <string name="tabs_new_private">New private tab</string>
+    <string name="tabs_close_all">Close all</string>
+    <string name="tabs_close_tab">Close tab</string>
+    <string name="tabs_private_label">Private</string>
+    <string name="tabs_suspended_label">Suspended to save memory</string>
+    <string name="tab_untitled">New tab</string>
+
+    <!-- Bookmarks -->
+    <string name="bookmark_added">Bookmark added</string>
+    <string name="bookmark_removed">Bookmark removed</string>
+    <string name="bookmark_cannot">Only http and https pages can be bookmarked</string>
+    <string name="bookmarks_empty">No bookmarks yet.</string>
+    <string name="bookmark_edit_title">Edit bookmark</string>
+    <string name="bookmark_title_hint">Title</string>
+    <string name="bookmark_url_hint">Address</string>
+    <string name="bookmark_delete_confirm">Remove “%1$s” from bookmarks?</string>
+
+    <!-- History -->
+    <string name="history_empty">No history yet.</string>
+    <string name="history_search_hint">Search history</string>
+    <string name="history_clear">Clear history</string>
+    <string name="history_clear_confirm">Delete all %1$d history entries? This cannot be undone.</string>
+    <string name="history_cleared">History cleared</string>
+    <string name="history_entry_removed">Entry removed</string>
+
+    <!-- Downloads -->
+    <string name="downloads_empty">No downloads yet.</string>
+    <string name="download_started">Downloading %1$s</string>
+    <string name="download_saved">Saved %1$s</string>
+    <string name="download_confirm_title">Download file?</string>
+    <string name="download_confirm_body">%1$s\n%2$s</string>
+    <string name="download_size_unknown">Size unknown</string>
+    <string name="download_action">Download</string>
+    <string name="download_status_running">In progress</string>
+    <string name="download_status_pending">Waiting</string>
+    <string name="download_status_complete">Complete</string>
+    <string name="download_status_failed">Failed</string>
+    <string name="download_open_failed">No app on this device can open this file type</string>
+    <string name="download_clear">Clear list</string>
+    <string name="download_apk_notice">ReWeb saves APK files but never installs them. Open the file to let Android’s installer handle it.</string>
+
+    <!-- Download failures -->
+    <string name="download_error_permission">Storage permission is required to save downloads on this version of Android</string>
+    <string name="download_error_scheme">This link cannot be downloaded: unsupported address type</string>
+    <string name="download_error_blob">This file is generated inside the page (a blob: link). ReWeb cannot download it — the data never leaves the page, and reading it would require giving every website access to the app. Try the site’s own “save” or “export” option.</string>
+    <string name="download_error_manager">Android’s download service is disabled on this device. Enable “Download Manager” in app settings.</string>
+    <string name="download_error_storage">Storage is unavailable or full</string>
+    <string name="download_error_unknown">The download could not be started</string>
+
+    <!-- Permissions -->
+    <string name="permission_title">%1$s wants access</string>
+    <string name="permission_camera">Camera</string>
+    <string name="permission_microphone">Microphone</string>
+    <string name="permission_location">Location</string>
+    <string name="permission_protected_media">Protected media playback</string>
+    <string name="permission_midi">MIDI devices</string>
+    <string name="permission_unknown">An unrecognised capability</string>
+    <string name="permission_allow">Allow</string>
+    <string name="permission_deny">Deny</string>
+    <string name="permission_body">This site is asking for: %1$s</string>
+    <string name="permission_note">ReWeb does not remember this answer. The site will ask again next time.</string>
+    <string name="permission_denied_by_android">Android denied the permission, so the site was denied too</string>
+
+    <!-- JS dialogs -->
+    <string name="js_dialog_title">%1$s says</string>
+    <string name="js_leave_page">Leave this page?</string>
+    <string name="js_leave_confirm">Leave</string>
+    <string name="js_stay">Stay</string>
+
+    <!-- SSL -->
+    <string name="ssl_warning_title">Security warning</string>
+    <string name="ssl_warning_body">ReWeb could not verify that this is really %1$s. %2$s</string>
+    <string name="ssl_warning_hint">If you continue, anything you send to this site could be read or changed by someone else. Do not continue to enter passwords or payment details.</string>
+    <string name="ssl_expired">The site’s certificate has expired.</string>
+    <string name="ssl_not_yet_valid">The site’s certificate is not valid yet.</string>
+    <string name="ssl_hostname_mismatch">The certificate was issued for a different address.</string>
+    <string name="ssl_untrusted">The certificate was not issued by an authority this device trusts.</string>
+    <string name="ssl_invalid_date">The certificate’s dates are invalid. Check that this device’s clock is correct — a wrong date is the most common cause on older phones.</string>
+    <string name="ssl_unknown">The certificate could not be validated.</string>
+    <string name="ssl_issued_to">Issued to: %1$s</string>
+    <string name="ssl_issued_by">Issued by: %1$s</string>
+    <string name="ssl_proceed">Continue anyway</string>
+    <string name="ssl_go_back">Go back (recommended)</string>
+    <string name="ssl_proceed_confirm">Continue to %1$s without a verified certificate? This lasts until you close ReWeb.</string>
+
+    <!-- Error pages -->
+    <string name="error_no_network_title">No internet connection</string>
+    <string name="error_no_network_body">This device is not connected to a network.</string>
+    <string name="error_no_network_hint">Check Wi-Fi or mobile data, then try again.</string>
+    <string name="error_dns_title">Address not found</string>
+    <string name="error_dns_body">ReWeb could not find the server for %1$s.</string>
+    <string name="error_dns_hint">Check the spelling of the address. If it is correct, the site’s DNS may be down or blocked on this network.</string>
+    <string name="error_refused_title">Connection refused</string>
+    <string name="error_refused_body">%1$s refused the connection.</string>
+    <string name="error_refused_hint">The server may be down, or a firewall on this network may be blocking it.</string>
+    <string name="error_reset_title">Connection interrupted</string>
+    <string name="error_reset_body">The connection to %1$s was closed before the page finished loading.</string>
+    <string name="error_reset_hint">This is usually a flaky network. Try again; if it keeps happening on mobile data, try Wi-Fi.</string>
+    <string name="error_timeout_title">Connection timed out</string>
+    <string name="error_timeout_body">%1$s took too long to respond.</string>
+    <string name="error_timeout_hint">The network may be slow or the server overloaded. Try again in a moment.</string>
+    <string name="error_tls_title">Secure connection failed</string>
+    <string name="error_tls_body">ReWeb could not establish an encrypted connection to %1$s.</string>
+    <string name="error_tls_hint">On older Android versions this usually means the site requires newer encryption than this device supports, or the device’s date is wrong. Updating Android System WebView from the Play Store can help; the device clock is worth checking first.</string>
+    <string name="error_redirect_title">Too many redirects</string>
+    <string name="error_redirect_body">%1$s kept redirecting and never arrived at a page.</string>
+    <string name="error_redirect_hint">This often clears up after deleting the site’s cookies in Settings → Privacy.</string>
+    <string name="error_scheme_title">Unsupported address</string>
+    <string name="error_scheme_body">ReWeb does not know how to open this type of address.</string>
+    <string name="error_scheme_hint">If this link is meant for another app, that app may not be installed.</string>
+    <string name="error_not_found_title">Page not found</string>
+    <string name="error_not_found_body">%1$s does not have a page at this address.</string>
+    <string name="error_not_found_hint">The link may be out of date. Try the site’s home page.</string>
+    <string name="error_rate_limited_title">Too many requests</string>
+    <string name="error_rate_limited_body">%1$s is temporarily refusing requests from this device.</string>
+    <string name="error_rate_limited_hint">Wait a few minutes before trying again.</string>
+    <string name="error_http_title">Server error %1$d</string>
+    <string name="error_http_body">%1$s returned an error instead of a page.</string>
+    <string name="error_http_hint">This is a problem on the site, not on this device. Try again later.</string>
+    <string name="error_unknown_title">Page could not be loaded</string>
+    <string name="error_unknown_body">Something went wrong while loading %1$s, and the engine did not say what.</string>
+    <string name="error_unknown_hint">Try reloading. If it keeps failing, check Diagnostics to see whether this device’s WebView supports the site.</string>
+    <string name="error_renderer_title">This page ran out of memory</string>
+    <string name="error_renderer_body">The rendering engine stopped while displaying %1$s.</string>
+    <string name="error_renderer_hint">Heavy pages can exceed what this device can hold. Closing other tabs before reloading usually helps.</string>
+    <string name="error_engine_unavailable">The system WebView is unavailable. It may be updating — try again shortly.</string>
+
+    <!-- Compatibility -->
+    <string name="compat_limitation_title">This device’s browser engine is too old for this site</string>
+    <string name="compat_limitation_body">%1$s needs browser features that Android System WebView on this device does not provide. The installed engine reports Chromium %2$s.</string>
+    <string name="compat_limitation_hint">This is a limitation of this device, not of ReWeb. Updating “Android System WebView” from the Play Store is the only fix, and on some older devices no newer version is offered.</string>
+    <string name="compat_warning_banner">This device’s WebView is Chromium %1$s. Some modern sites will not work correctly.</string>
+    <string name="compat_warning_details">Details</string>
+    <string name="compat_warning_dismiss">Dismiss</string>
+
+    <!-- Web apps -->
+    <string name="install_web_app_title">Install web app</string>
+    <string name="install_web_app_name">Name</string>
+    <string name="install_web_app_url">Address</string>
+    <string name="install_web_app_ua">User agent</string>
+    <string name="install_web_app_action">Install</string>
+    <string name="install_web_app_note">Opens in its own window, separate from your tabs. It shares your cookies and sign-ins with normal browsing — installing is not a privacy boundary.</string>
+    <string name="install_web_app_done">%1$s installed</string>
+    <string name="install_web_app_failed">Only http and https pages can be installed</string>
+    <string name="web_apps_empty">No web apps installed.\n\nOpen a site, then choose “Install web app” from the menu.</string>
+    <string name="web_app_remove_confirm">Remove “%1$s”? Your cookies and sign-in for the site are kept.</string>
+    <string name="web_app_removed">%1$s removed</string>
+    <string name="web_app_edit_title">Edit web app</string>
+    <string name="web_app_open_in_browser">Open in browser</string>
+    <string name="web_app_last_used">Last opened %1$s</string>
+    <string name="web_app_never_used">Not opened yet</string>
+
+    <!-- Settings: general -->
+    <string name="settings_general">General</string>
+    <string name="settings_home_page">Home page</string>
+    <string name="settings_home_page_native">ReWeb start screen</string>
+    <string name="settings_search_engine">Search engine</string>
+    <string name="settings_search_custom">Custom…</string>
+    <string name="settings_search_custom_hint">https://example.com/search?q=%s</string>
+    <string name="settings_search_custom_invalid">The template must start with http(s):// and contain %s</string>
+    <string name="settings_javascript">JavaScript</string>
+    <string name="settings_javascript_summary">Required by most modern sites. Turning it off saves memory but breaks them.</string>
+    <string name="settings_images">Load images</string>
+    <string name="settings_images_summary">Turn off to save data and memory on slow connections</string>
+    <string name="settings_popups">Allow pop-up windows</string>
+    <string name="settings_popups_summary">Needed by some sign-in flows</string>
+    <string name="settings_text_zoom">Text size</string>
+    <string name="settings_text_zoom_value">%1$d%%</string>
+
+    <!-- Settings: privacy -->
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_clear_data">Clear browsing data</string>
+    <string name="settings_clear_data_summary">History, cookies, cache and site storage</string>
+    <string name="settings_clear_on_exit">Clear data when ReWeb closes</string>
+    <string name="settings_clear_history">History</string>
+    <string name="settings_clear_cookies">Cookies and sign-ins</string>
+    <string name="settings_clear_cache">Cached files</string>
+    <string name="settings_clear_site_storage">Site storage</string>
+    <string name="settings_clear_downloads">Download list</string>
+    <string name="settings_clear_bookmarks">Bookmarks</string>
+    <string name="settings_clear_confirm">Delete %1$s?</string>
+    <string name="settings_clear_done">Selected data cleared</string>
+    <string name="settings_clear_nothing_selected">Select at least one item</string>
+    <string name="settings_oauth_handoff">Offer to open sign-in pages in another browser</string>
+    <string name="settings_oauth_handoff_summary">Google and other providers refuse to sign you in inside an embedded browser. See Diagnostics for what this can and cannot do.</string>
+    <string name="settings_data_note">ReWeb stores everything on this device. There is no account, no sync and no server.</string>
+
+    <!-- Settings: downloads -->
+    <string name="settings_downloads">Downloads</string>
+    <string name="settings_download_folder">Folder inside Downloads</string>
+    <string name="settings_download_folder_summary">Files are saved to Downloads/%1$s</string>
+    <string name="settings_download_folder_root">Files are saved to Downloads</string>
+    <string name="settings_download_ask">Ask before every download</string>
+
+    <!-- Settings: compatibility -->
+    <string name="settings_compatibility">Compatibility</string>
+    <string name="settings_default_ua">Default user agent</string>
+    <string name="settings_custom_ua">Custom user agent</string>
+    <string name="settings_custom_ua_hint">Paste a full user-agent string</string>
+    <string name="settings_site_ua">Per-site user agents</string>
+    <string name="settings_site_ua_summary">%1$d site(s) with an override</string>
+    <string name="settings_site_ua_none">No per-site overrides</string>
+    <string name="settings_site_ua_remove">Remove override for %1$s?</string>
+    <string name="settings_webview_info">WebView information</string>
+    <string name="settings_run_compat_test">Run compatibility test</string>
+
+    <string name="ua_default">Default</string>
+    <string name="ua_mobile">Mobile</string>
+    <string name="ua_desktop">Desktop</string>
+    <string name="ua_custom">Custom</string>
+    <string name="ua_site_default">Use default</string>
+
+    <!-- Settings: about -->
+    <string name="settings_about">About</string>
+    <string name="about_version">ReWeb version</string>
+    <string name="about_build">Build</string>
+    <string name="about_android">Android version</string>
+    <string name="about_api">API level</string>
+    <string name="about_device">Device</string>
+    <string name="about_engine">Rendering engine</string>
+    <string name="about_engine_value">System WebView</string>
+    <string name="about_webview_package">WebView package</string>
+    <string name="about_webview_version">WebView version</string>
+    <string name="about_chromium">Chromium version</string>
+    <string name="about_min_sdk">Minimum supported Android</string>
+
+    <!-- Diagnostics -->
+    <string name="diagnostics_device">Device and engine</string>
+    <string name="diagnostics_capabilities">Capabilities</string>
+    <string name="diagnostics_run_test">Run compatibility test</string>
+    <string name="diagnostics_running">Running tests…</string>
+    <string name="diagnostics_intro">These tests run real code inside this device’s WebView. A result of UNKNOWN means the capability could not be measured — it is not reported as passing.</string>
+    <string name="diagnostics_result_pass">PASS</string>
+    <string name="diagnostics_result_fail">FAIL</string>
+    <string name="diagnostics_result_unknown">UNKNOWN</string>
+    <string name="diagnostics_copy">Copy report</string>
+    <string name="diagnostics_copied">Report copied to clipboard</string>
+    <string name="diagnostics_webview_outdated">This WebView predates the baseline modern sites are built for (Chromium %1$d). Breakage on such sites is expected on this device.</string>
+    <string name="diagnostics_webview_current">This WebView is recent enough for most modern sites.</string>
+    <string name="diagnostics_webview_unknown">The Chromium version could not be determined.</string>
+    <string name="diagnostics_test_targets">Compatibility test sites</string>
+    <string name="diagnostics_test_targets_note">Opens the site in a new tab so you can see how it behaves on this device. ReWeb has no special handling for any of them.</string>
+
+    <!-- OAuth handoff -->
+    <string name="oauth_title">Sign-in page detected</string>
+    <string name="oauth_body_returns">This looks like a sign-in that redirects back to ReWeb. Opening it in another browser is more likely to work, and you will be returned here when it finishes.</string>
+    <string name="oauth_body_no_return">This looks like a sign-in page. Providers such as Google refuse to sign you in inside an embedded browser.\n\nOpening it in another browser will let the sign-in succeed there, but the resulting session stays in that browser — Android does not let apps share cookies, so you may still not be signed in here.</string>
+    <string name="oauth_open_external">Open in another browser</string>
+    <string name="oauth_stay">Continue here</string>
+    <string name="oauth_no_browser">No other browser is installed on this device, so the sign-in has to run here. It may be refused by the provider.</string>
+    <string name="oauth_returned">Returned from sign-in</string>
+
+    <!-- External schemes -->
+    <string name="external_title">Open in another app?</string>
+    <string name="external_body">This link opens outside ReWeb:\n\n%1$s</string>
+    <string name="external_open">Open</string>
+    <string name="external_no_handler">No app on this device can open %1$s links</string>
+    <string name="external_no_handler_fallback">No app can open that link. Open the web version instead?</string>
+    <string name="external_malformed">That link is malformed and was not opened</string>
+
+    <!-- Media -->
+    <string name="media_channel_name">Media playback</string>
+    <string name="media_channel_description">Controls for audio and video playing in ReWeb</string>
+    <string name="media_playing">Playing in ReWeb</string>
+    <string name="media_play">Play</string>
+    <string name="media_pause">Pause</string>
+    <string name="media_stop">Stop</string>
+
+    <!-- Misc -->
+    <string name="private_session_ended">Private tabs closed. Session cookies removed.</string>
+    <string name="copied_to_clipboard">Copied</string>
+    <string name="value_unknown">Unknown</string>
+    <string name="value_yes">Yes</string>
+    <string name="value_no">No</string>
+    <string name="value_none">None</string>
+    <string name="no_page_loaded">No page is loaded</string>
+</resources>

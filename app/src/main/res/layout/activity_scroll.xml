@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Container for the settings and diagnostics screens. Their rows are built in
+  code from item_setting_row, which keeps a long, mostly-repetitive screen out of
+  XML and lets rows appear conditionally (per-site overrides, WebView facts that
+  may not be readable on a given device).
+-->
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:id="@+id/container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:paddingBottom="24dp" />
+</ScrollView>

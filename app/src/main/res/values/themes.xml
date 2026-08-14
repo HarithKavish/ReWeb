@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!--
+      Built on Theme.AppCompat.DayNight.NoActionBar rather than a Material theme:
+      the app uses no Material components, and pulling in that library for a theme
+      alone would add roughly a megabyte to the APK for no functional gain.
+    -->
+    <style name="Theme.ReWeb" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/primary</item>
+        <item name="android:windowBackground">@color/page_background</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <!-- Legacy GPUs render overdraw badly; a flat window costs less to compose. -->
+        <item name="android:windowDisablePreview">false</item>
+    </style>
+
+    <style name="Theme.ReWeb.Transparent" parent="Theme.ReWeb">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:backgroundDimEnabled">false</item>
+    </style>
+
+    <style name="Theme.ReWeb.Settings" parent="Theme.AppCompat.DayNight">
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/primary</item>
+    </style>
+
+    <style name="ToolbarButton">
+        <item name="android:layout_width">@dimen/toolbar_button_size</item>
+        <item name="android:layout_height">@dimen/toolbar_button_size</item>
+        <item name="android:background">?attr/selectableItemBackgroundBorderless</item>
+        <item name="android:padding">@dimen/toolbar_button_padding</item>
+        <item name="android:scaleType">fitCenter</item>
+    </style>
+
+    <style name="SettingRowTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">16sp</item>
+        <item name="android:textColor">?android:attr/textColorPrimary</item>
+    </style>
+
+    <style name="SettingRowSummary">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textColor">?android:attr/textColorSecondary</item>
+        <item name="android:paddingTop">2dp</item>
+    </style>
+
+    <style name="SectionHeader">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:textSize">13sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textAllCaps">true</item>
+        <item name="android:textColor">@color/primary</item>
+        <item name="android:paddingStart">16dp</item>
+        <item name="android:paddingEnd">16dp</item>
+        <item name="android:paddingTop">20dp</item>
+        <item name="android:paddingBottom">6dp</item>
+    </style>
+</resources>

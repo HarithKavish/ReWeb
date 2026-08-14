@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="launcher_background">#1F5B8F</color>
+
+    <color name="primary">#1F5B8F</color>
+    <color name="primary_dark">#164A73</color>
+
+    <color name="toolbar_background">#FFFFFF</color>
+    <color name="toolbar_background_private">#2B2B36</color>
+    <color name="page_background">#FFFFFF</color>
+
+    <color name="text_primary">#1B1B1B</color>
+    <color name="text_secondary">#5F5F5F</color>
+    <color name="text_on_private">#ECECEC</color>
+
+    <color name="divider">#E0E0E0</color>
+    <color name="url_field_background">#F1F3F4</color>
+    <color name="url_field_background_private">#3A3A48</color>
+
+    <color name="secure">#1E7B34</color>
+    <color name="insecure">#8A6D00</color>
+    <color name="danger">#B3261E</color>
+    <color name="warning">#B06F16</color>
+</resources>

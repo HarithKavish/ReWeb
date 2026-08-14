@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Chrome is split top (address) and bottom (navigation) so that the controls used
+  most often sit under the thumb, and the address bar stays clear of the
+  soft keyboard. Everything is plain LinearLayout/FrameLayout: no nested weights,
+  no ConstraintLayout, so the whole screen measures in a single pass.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/rootContainer"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <LinearLayout
+        android:id="@+id/browserChrome"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical">
+
+        <!-- Address row -->
+        <LinearLayout
+            android:id="@+id/topBar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/toolbar_height"
+            android:background="@color/toolbar_background"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:paddingStart="4dp"
+            android:paddingEnd="4dp">
+
+            <ImageButton
+                android:id="@+id/securityButton"
+                style="@style/ToolbarButton"
+                android:layout_width="40dp"
+                android:contentDescription="@string/security_neutral"
+                android:src="@drawable/ic_globe" />
+
+            <EditText
+                android:id="@+id/urlBar"
+                android:layout_width="0dp"
+                android:layout_height="38dp"
+                android:layout_weight="1"
+                android:background="@drawable/bg_url_field"
+                android:hint="@string/url_bar_hint"
+                android:imeOptions="actionGo|flagNoExtractUi"
+                android:inputType="textUri|textNoSuggestions"
+                android:maxLines="1"
+                android:paddingStart="10dp"
+                android:paddingEnd="10dp"
+                android:selectAllOnFocus="true"
+                android:singleLine="true"
+                android:textColor="@color/text_primary"
+                android:textColorHint="@color/text_secondary"
+                android:textSize="15sp"
+                android:autofillHints=""
+                tools:ignore="LabelFor" />
+
+            <ImageButton
+                android:id="@+id/reloadButton"
+                style="@style/ToolbarButton"
+                android:layout_width="40dp"
+                android:contentDescription="@string/action_reload"
+                android:src="@drawable/ic_reload" />
+        </LinearLayout>
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/progress_height"
+            android:indeterminate="false"
+            android:max="100"
+            android:progressDrawable="@drawable/progress_bar"
+            android:visibility="gone" />
+
+        <!-- Shown when the installed WebView predates the modern baseline. -->
+        <LinearLayout
+            android:id="@+id/compatBanner"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFF4E0"
+            android:orientation="horizontal"
+            android:padding="10dp"
+            android:visibility="gone"
+            tools:visibility="visible">
+
+            <TextView
+                android:id="@+id/compatBannerText"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_vertical"
+                android:layout_weight="1"
+                android:textColor="#5A4300"
+                android:textSize="13sp"
+                tools:text="This device's WebView is Chromium 61." />
+
+            <Button
+                android:id="@+id/compatBannerDetails"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:minWidth="0dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="@string/compat_warning_details"
+                android:textColor="@color/primary"
+                android:textSize="13sp" />
+
+            <ImageButton
+                android:id="@+id/compatBannerDismiss"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_gravity="center_vertical"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/compat_warning_dismiss"
+                android:padding="8dp"
+                android:src="@drawable/ic_close" />
+        </LinearLayout>
+
+        <!-- Page content. The engine view is added here at runtime. -->
+        <FrameLayout
+            android:id="@+id/contentContainer"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:background="@color/page_background">
+
+            <include
+                android:id="@+id/homeView"
+                layout="@layout/view_home" />
+        </FrameLayout>
+
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider" />
+
+        <!-- Navigation row -->
+        <LinearLayout
+            android:id="@+id/bottomBar"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/toolbar_height"
+            android:background="@color/toolbar_background"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:weightSum="5">
+
+            <ImageButton
+                android:id="@+id/backButton"
+                style="@style/ToolbarButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/action_back"
+                android:src="@drawable/ic_back" />
+
+            <ImageButton
+                android:id="@+id/forwardButton"
+                style="@style/ToolbarButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/action_forward"
+                android:src="@drawable/ic_forward" />
+
+            <ImageButton
+                android:id="@+id/homeButton"
+                style="@style/ToolbarButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/action_home"
+                android:src="@drawable/ic_home" />
+
+            <FrameLayout
+                android:id="@+id/tabsButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="@string/action_tabs">
+
+                <ImageView
+                    android:layout_width="@dimen/toolbar_button_size"
+                    android:layout_height="@dimen/toolbar_button_size"
+                    android:layout_gravity="center"
+                    android:contentDescription="@string/action_tabs"
+                    android:padding="@dimen/toolbar_button_padding"
+                    android:src="@drawable/ic_tabs" />
+
+                <TextView
+                    android:id="@+id/tabCount"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginTop="2dp"
+                    android:minWidth="18dp"
+                    android:gravity="center"
+                    android:textColor="@color/text_primary"
+                    android:textSize="11sp"
+                    android:textStyle="bold"
+                    tools:text="3" />
+            </FrameLayout>
+
+            <ImageButton
+                android:id="@+id/menuButton"
+                style="@style/ToolbarButton"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:contentDescription="@string/action_menu"
+                android:src="@drawable/ic_menu" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- Receives the page's own view during fullscreen video. -->
+    <FrameLayout
+        android:id="@+id/fullscreenContainer"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/black"
+        android:visibility="gone" />
+</FrameLayout>

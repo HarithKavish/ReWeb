@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/menu_new_tab"
+        android:title="@string/menu_new_tab" />
+    <item
+        android:id="@+id/menu_new_private_tab"
+        android:title="@string/menu_new_private_tab" />
+    <item
+        android:id="@+id/menu_bookmark"
+        android:title="@string/menu_bookmark_add" />
+    <item
+        android:id="@+id/menu_desktop_site"
+        android:checkable="true"
+        android:title="@string/menu_desktop_site" />
+    <item
+        android:id="@+id/menu_install_web_app"
+        android:title="@string/menu_install_web_app" />
+    <item
+        android:id="@+id/menu_share"
+        android:title="@string/menu_share" />
+    <item
+        android:id="@+id/menu_copy_link"
+        android:title="@string/menu_copy_link" />
+    <item
+        android:id="@+id/menu_open_in_browser"
+        android:title="@string/menu_open_in_browser" />
+    <item
+        android:id="@+id/menu_bookmarks"
+        android:title="@string/menu_bookmarks" />
+    <item
+        android:id="@+id/menu_history"
+        android:title="@string/menu_history" />
+    <item
+        android:id="@+id/menu_downloads"
+        android:title="@string/menu_downloads" />
+    <item
+        android:id="@+id/menu_web_apps"
+        android:title="@string/menu_web_apps" />
+    <item
+        android:id="@+id/menu_diagnostics"
+        android:title="@string/menu_diagnostics" />
+    <item
+        android:id="@+id/menu_settings"
+        android:title="@string/menu_settings" />
+</menu>

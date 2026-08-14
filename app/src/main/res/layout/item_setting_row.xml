@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/settingRow"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="?attr/selectableItemBackground"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/list_item_min_height"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/screen_padding"
+    android:paddingTop="10dp"
+    android:paddingEnd="@dimen/screen_padding"
+    android:paddingBottom="10dp">
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/settingTitle"
+            style="@style/SettingRowTitle"
+            tools:text="Search engine" />
+
+        <TextView
+            android:id="@+id/settingSummary"
+            style="@style/SettingRowSummary"
+            android:visibility="gone"
+            tools:text="Google"
+            tools:visibility="visible" />
+    </LinearLayout>
+
+    <!--
+      SwitchCompat rather than Switch: the platform Switch is API 14+, but the
+      AppCompat version themes consistently across API 21-34 without extra styles.
+    -->
+    <androidx.appcompat.widget.SwitchCompat
+        android:id="@+id/settingSwitch"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:clickable="false"
+        android:focusable="false"
+        android:visibility="gone"
+        tools:visibility="visible" />
+
+    <TextView
+        android:id="@+id/settingValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="12dp"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp"
+        android:visibility="gone"
+        tools:text="Chromium 61" />
+</LinearLayout>
