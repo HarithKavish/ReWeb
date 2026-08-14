@@ -49,7 +49,6 @@ class DiagnosticsActivity : AppCompatActivity() {
 
     private var results: List<CompatCheck> = emptyList()
     private var isRunning = false
-    private var isProvisioning = false
     private var info: WebViewInfo = WebViewInfo.readNotAvailable()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -199,7 +198,6 @@ class DiagnosticsActivity : AppCompatActivity() {
         rows.note(
             when {
                 !drm.schemeSupported -> getString(R.string.diagnostics_drm_absent)
-                drm.needsProvisioning -> getString(R.string.diagnostics_drm_unprovisioned)
                 drm.isUsableByPlatform -> getString(R.string.diagnostics_drm_platform_ok)
                 else -> getString(
                     R.string.diagnostics_drm_failed,
@@ -208,46 +206,6 @@ class DiagnosticsActivity : AppCompatActivity() {
             }
         )
 
-        // Offered whenever Widevine exists, because a missing device certificate
-        // is invisible from here: sessions open and EME reports support, and only
-        // the licence request fails. Running it when nothing is wrong is harmless.
-        if (drm.schemeSupported) {
-            rows.row(
-                getString(if (isProvisioning) R.string.diagnostics_drm_provisioning
-                          else R.string.diagnostics_drm_provision),
-                getString(R.string.diagnostics_drm_provision_summary)
-            ) { if (!isProvisioning) runProvisioning() }
-        }
-    }
-
-    /**
-     * Provisioning performs network I/O, so it runs off the main thread. This is
-     * the only background work in the app, and it exists for a single user-invoked
-     * action rather than as a standing thread.
-     */
-    private fun runProvisioning() {
-        isProvisioning = true
-        build()
-        Thread {
-            val result = DrmProvisioner.provision()
-            runOnUiThread {
-                if (isFinishing || isDestroyed) return@runOnUiThread
-                isProvisioning = false
-                build()
-                Toast.makeText(
-                    this,
-                    when (result) {
-                        is DrmProvisioner.Result.Provisioned ->
-                            getString(R.string.diagnostics_drm_provision_done)
-                        is DrmProvisioner.Result.AlreadyProvisioned ->
-                            getString(R.string.diagnostics_drm_provision_already)
-                        is DrmProvisioner.Result.Failed ->
-                            getString(R.string.diagnostics_drm_provision_failed, result.reason)
-                    },
-                    Toast.LENGTH_LONG
-                ).show()
-            }
-        }.start()
     }
 
     /**

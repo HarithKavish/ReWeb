@@ -206,78 +206,55 @@ sign-in works normally.
 
 ### Spotify Web
 
-**Measured end to end on the Galaxy J2 (Android 5.1.1, WebView 95, Premium account).**
+**On a current Android device: works fully.** Sign-in, library, playback of the
+full catalogue. Verified on Android 16 with the very first build of ReWeb, before
+any DRM-specific work existed — which is the useful data point, because it means
+nothing in the app was ever the obstacle.
 
-| Step | Result |
-|---|---|
-| Load `open.spotify.com` | Works |
-| Log in | Works — via `accounts.spotify.com`, which serves the mobile UA normally |
-| Browse library, playlists, artwork | Works |
-| "Unsupported browser" gate | **Bypassable** — it is a user-agent *version* check |
-| Embed player (`/embed/track/...`) | Renders perfectly |
-| **30-second previews** | **Play** |
-| **Full DRM tracks** | **Do not play** |
+**On the Android 5.1.1 test device: everything except decrypting protected
+audio.** Sign-in, full library browsing, lyrics, artwork, the embed player, and
+preview playback with audio all work. Full tracks play their unencrypted lead-in —
+about seven seconds — and then stop when the encrypted audio begins.
 
-Three separate things had to be understood here, and each was initially
-misdiagnosed.
+Three separate obstacles were found and removed before reaching the real one:
 
-**1. The "Unsupported browser" wall is a version check.** Spotify's desktop player
-refuses the device's real Chromium 95 user agent. Presenting a newer desktop
-Chrome via *Settings → Compatibility → Default user agent → Custom* gets straight
-past it. Note the trade-off: the full desktop player then renders badly, because
-Chromium 95 does not implement the CSS the modern bundle assumes. The **embed
-player** renders correctly and is the better target on old engines.
+- **Mobile web is browse-only by design.** Spotify's mobile site shows lyrics and
+  metadata but exposes no player. Sign in via `accounts.spotify.com`, which serves
+  the mobile UA normally.
+- **The "Unsupported browser" gate is a user-agent version check.** Spotify refuses
+  the device's real Chromium 95 UA. A newer desktop Chrome string via
+  *Settings → Compatibility → Default user agent → Custom* passes it. The full
+  player then renders badly, because Chromium 95 lacks the CSS the modern bundle
+  assumes; the **embed player** renders correctly and is the better target.
+- **Re-prompting for protected media disabled the player.** Spotify requests EME
+  while initialising, and a modal dialog in front of that request made it give up
+  (`HarmonyError: local player is disabled`). ReWeb now remembers protected-media
+  grants per origin. This was a real bug and the fix is worth having regardless.
 
-**2. Mobile web is browse-only by design.** Spotify's mobile site shows lyrics,
-art and metadata but exposes no player, pushing users to the app. That is a
-product decision, not a limitation of the browser.
-
-**3. Full playback stops inside the device's Widevine module.** Reaching that
-conclusion took removing three other suspects first, each of which was a real
-problem in its own right:
-
-- *Permissions.* Spotify requests protected media while its player initialises.
-  ReWeb re-prompted on every load and the dialog made the player disable itself
-  (`HarmonyError: local player is disabled`). Fixed by remembering protected-media
-  grants per origin.
-- *Provisioning.* The device had no Widevine certificate — `ay64.dat2` was absent,
-  so no licence request could ever succeed. ReWeb can now repair this from
-  *Diagnostics → Repair DRM provisioning*, and doing so completed successfully.
-- *The CDM itself.* It instantiates correctly; `createMediaKeys()` passes for both
-  audio and video.
-
-With all three resolved, the failure moved to its final resting place — key
-request generation, inside the CDM, before anything reaches Spotify's servers:
+What remains is inside the device's Widevine module:
 
 ```
-E/WVCdm: CdmLicense::PrepareKeyRequest: retrieved certificate not of type service, 0
+E/WVCdm: CdmLicense::PrepareKeyRequest: retrieved certificate not of type service
 E/WVCdm: CdmEngine::GenerateKeyRequest: key request generation failed, sts = 3
-EMEError: Failed to execute 'generateRequest' on 'MediaKeySession'
+E/WVCdm: Decrypt error result in session sid3 during unencrypted block: 5
 ```
 
-The device's Widevine module identifies itself as:
+The module reports itself as `Level3 Library Dec 11 2014`. Modern licence flows
+hand the CDM a *service certificate* for privacy-mode key requests, and an
+eleven-year-old L3 build cannot parse it. Key request generation fails before
+anything reaches Spotify, so there is no network-side fix and no app-side
+substitute — the CDM belongs to the platform. The "unencrypted block" line is the
+clear lead-in playing, which is exactly the few seconds users observe.
 
-```
-I/WVCdm: Level3 Library Dec 11 2014 16:13:16
-```
-
-An **eleven-year-old L3 CDM**. Modern licence flows hand the CDM a *service
-certificate* for privacy-mode key requests, and this one cannot parse what it is
-given — "not of type service". It fails before a single byte reaches the licence
-server, so there is nothing on the network side to fix, and nothing an app can
-substitute: the CDM is part of the platform.
-
-**What this means in practice:** on Android 5.x you can sign in, browse your
-library, and hear previews. Full-catalogue playback needs the Spotify app, which
-talks to the platform DRM directly instead of going through a WebView.
-
-One ReWeb bug was found and fixed here. Spotify requests protected-media
-permission while its player is initialising; ReWeb re-prompted on every load, and
-a modal dialog in front of that request made the player disable itself outright
-(`HarmonyError: local player is disabled`). Protected-media grants are now
-remembered per origin, which is what moved the failure from "player disabled" to
-"licence request attempted". Camera, microphone and location are still never
-remembered — see [SECURITY.md](SECURITY.md).
+**A caution recorded deliberately.** ReWeb briefly shipped a "Repair DRM
+provisioning" action, on the theory that a missing device certificate
+(`ay64.dat2`) was the cause. It ran successfully, and the licence failure
+afterwards was *worse* than before — from a request being generated and rejected,
+to no request being generated at all. Whether the repair caused that or merely
+coincided with a different code path was never established, and `MediaDrm` offers
+no way to undo provisioning. The feature has been removed. Diagnostics still
+*reports* an unprovisioned device, because that is a real and useful fact; it no
+longer offers to write to a device's DRM state on a hypothesis.
 
 ### YouTube
 `m.youtube.com` generally works on a reasonably current WebView. Playback needs

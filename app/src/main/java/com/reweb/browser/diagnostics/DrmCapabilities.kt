@@ -37,9 +37,14 @@ data class DrmCapabilities(
     val sessionOpened: Boolean,
 
     /**
-     * The device has Widevine but has never completed provisioning. This is the
-     * hopeful failure: provisioning is a one-time handshake, and a device whose
-     * Play Services are broken may simply never have done it.
+     * The device has Widevine but has never completed provisioning.
+     *
+     * Reported, but deliberately not acted on. ReWeb briefly shipped a repair
+     * that performed the provisioning handshake; on the one device it ran
+     * against, the licence failure afterwards was worse than before, and
+     * MediaDrm offers no way to undo it. Writing to a device's DRM state on a
+     * hunch is not worth the risk of leaving it in a state the owner cannot
+     * recover, so this is now information only.
      */
     val needsProvisioning: Boolean,
 

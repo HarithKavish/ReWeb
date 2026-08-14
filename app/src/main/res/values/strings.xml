@@ -324,15 +324,8 @@
     <string name="diagnostics_drm_version">DRM version</string>
     <string name="diagnostics_drm_session">Platform can open a session</string>
     <string name="diagnostics_drm_absent">This device has no Widevine support at all, so no protected streaming service can play here in any browser or app.</string>
-    <string name="diagnostics_drm_unprovisioned">Widevine is present but this device has never been provisioned. Provisioning is a one-time exchange with Google\'s servers, and it can fail on devices whose Play Services no longer work. This is the one DRM problem that may be repairable.</string>
     <string name="diagnostics_drm_platform_ok">The platform itself can use Widevine. If the browser checks below still fail, the limitation is in this device\'s WebView rather than in its DRM hardware — and no app-side change can work around that, because a browser cannot supply its own content decryption module.</string>
     <string name="diagnostics_drm_failed">Widevine is present but could not be used: %1$s</string>
-    <string name="diagnostics_drm_provision">Repair DRM provisioning</string>
-    <string name="diagnostics_drm_provisioning">Provisioning…</string>
-    <string name="diagnostics_drm_provision_summary">Fetches this device\'s Widevine certificate from Google. A device missing it looks healthy — sessions open and DRM reports as supported — but every licence request fails. Harmless to run if nothing is wrong.</string>
-    <string name="diagnostics_drm_provision_done">Provisioning completed. Try the streaming site again.</string>
-    <string name="diagnostics_drm_provision_already">This device is already provisioned; nothing to repair.</string>
-    <string name="diagnostics_drm_provision_failed">Provisioning failed: %1$s</string>
     <string name="diagnostics_test_targets">Compatibility test sites</string>
     <string name="diagnostics_test_targets_note">Opens the site in a new tab so you can see how it behaves on this device. ReWeb has no special handling for any of them.</string>
 
