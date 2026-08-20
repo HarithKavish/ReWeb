@@ -31,6 +31,8 @@ internal class ReWebWebViewClient(
 ) : WebViewClient() {
 
     override fun onPageStarted(view: WebView, url: String, favicon: Bitmap?) {
+        // Must run before the page's player code reaches EME. See LegacyCdmShim.
+        if (engine.hasLegacyCdmShim) engine.evaluateJavaScript(LegacyCdmShim.SCRIPT, null)
         engine.updateFavicon(favicon)
         engine.client?.onPageStarted(url)
         engine.client?.onNavigationStateChanged()

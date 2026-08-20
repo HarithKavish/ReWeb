@@ -1,9 +1,11 @@
 name: Release
 
+# Deliberately NOT triggered by v* tags. publish-store.yml creates those tags,
+# and a second workflow racing it on the same tag would re-run action-gh-release
+# against an existing release - potentially replacing a signed store build with
+# an unsigned one. This workflow is for manual inspection builds only; the store
+# is published from publish-store.yml.
 on:
-  push:
-    tags:
-      - 'v*'
   workflow_dispatch:
     inputs:
       create_github_release:

@@ -150,9 +150,6 @@ dependencies {
     implementation(libs.androidx.recyclerview)
     // Custom Tabs — used only for the OAuth handoff to a real browser.
     implementation(libs.androidx.browser)
-    // WebViewCompat.addDocumentStartJavaScript, for the legacy-CDM shim in
-    // engine/webview/LegacyCdmShim. Feature-detected at runtime.
-    implementation(libs.androidx.webkit)
     // MediaSessionCompat + media-style notification for background web audio.
     implementation(libs.androidx.media)
 

@@ -111,6 +111,60 @@ explanation into the job summary, and names the artifact
 `reweb-release-unsigned.apk` so the limitation is obvious to whoever downloads
 it. The decoded keystore is deleted in an `always()` step.
 
+## Publishing to the store
+
+ReWeb is distributed through [store.harithkavish.com](https://store.harithkavish.com),
+the same self-hosted store as Jarvis, using the same mechanism.
+
+### How it works
+
+`.github/workflows/publish-store.yml` is manual (`workflow_dispatch`) and does:
+
+1. **Refuses to run without signing secrets.** More on why below.
+2. Derives the next version by incrementing the patch of the latest release tag,
+   so `v0.1.0` becomes `v0.1.1`. `versionCode` is computed as
+   `major * 10000 + minor * 100 + patch`, which increases monotonically —
+   Android rejects an update whose `versionCode` did not go up.
+3. Writes both values into `app/build.gradle.kts`.
+4. Runs lint and unit tests. A store build is the one that most needs these, so
+   they are not skipped.
+5. Assembles a **signed** release APK and verifies the signature with
+   `apksigner` — an unsigned APK installs nowhere, so this is a hard gate.
+6. Commits the version bump, tags a GitHub Release, and attaches the APK.
+7. Clones the store repo and commits the APK to
+   `apps/reweb/mobile/android/reweb-v<version>.apk`.
+
+The store's own *Update app manifests* workflow then regenerates
+`apps/reweb/mobile/android/latest.json` from the highest version present. Nothing
+in this repository writes that manifest.
+
+### Required secrets
+
+| Secret | Contents |
+|---|---|
+| `STORE_REPO_PAT` | PAT with `contents: write` on `HarithKavish/store` |
+| `ANDROID_KEYSTORE_BASE64` | `base64 -w 0 reweb-release.jks` |
+| `ANDROID_KEYSTORE_PASSWORD` | keystore password |
+| `ANDROID_KEY_ALIAS` | key alias |
+| `ANDROID_KEY_PASSWORD` | key password |
+
+### Why signing is mandatory here, unlike `release.yml`
+
+`release.yml` will happily produce an unsigned APK for local inspection. The
+store workflow will not, because Android identifies an app by its signing
+certificate:
+
+- An unsigned APK cannot be installed at all.
+- An APK signed with a *different* key than the previous version is, to Android,
+  a different app. The install fails with a signature mismatch, and the only
+  remedy for the user is to uninstall — losing their history, bookmarks and
+  sign-ins.
+
+So the same keystore must sign every published build, for the life of the app.
+Generating a fresh key per release would break every existing install. Keep the
+`.jks` file backed up somewhere you will still have in five years; losing it
+means no existing installation can ever be updated again.
+
 ## Continuous integration
 
 ### `.github/workflows/build.yml`

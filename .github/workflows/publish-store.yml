@@ -1,0 +1,250 @@
+name: Publish to Store
+
+# Mirrors the flow HarithKavish/my_chatgpt uses for Jarvis: derive the next
+# version from the latest release tag, build a signed release APK, tag a GitHub
+# Release, then push the APK into the store repo. The store's own
+# "Update app manifests" workflow regenerates latest.json from the filename, so
+# nothing here writes a manifest.
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_notes:
+        description: 'Release notes (blank uses the latest commit subject)'
+        required: false
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    name: Build, release and publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Publishing an unsigned APK, or one signed with a throwaway key, gives
+      # users something Android refuses to install or refuses to update. Fail
+      # here with an explanation rather than shipping a broken artifact.
+      - name: Require release signing
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          MISSING=""
+          [ -n "${ANDROID_KEYSTORE_BASE64}"   ] || MISSING="$MISSING ANDROID_KEYSTORE_BASE64"
+          [ -n "${ANDROID_KEYSTORE_PASSWORD}" ] || MISSING="$MISSING ANDROID_KEYSTORE_PASSWORD"
+          [ -n "${ANDROID_KEY_ALIAS}"         ] || MISSING="$MISSING ANDROID_KEY_ALIAS"
+          [ -n "${ANDROID_KEY_PASSWORD}"      ] || MISSING="$MISSING ANDROID_KEY_PASSWORD"
+          if [ -n "$MISSING" ]; then
+            echo "::error::Missing signing secrets:$MISSING"
+            {
+              echo "### Cannot publish: release signing is not configured"
+              echo ""
+              echo "Missing secrets:$MISSING"
+              echo ""
+              echo "Every build published to the store must be signed with the same key."
+              echo "Android identifies an app by its signature, so a different key is a"
+              echo "different app: installs fail with a signature mismatch and in-app"
+              echo "updates stop working. See BUILD.md for generating a keystore."
+            } >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "Signing secrets present."
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Make gradlew executable
+        run: chmod +x ./gradlew
+
+      - name: Determine next version
+        id: version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          LATEST=$(gh release list --repo "${{ github.repository }}" --limit 1 \
+                     --json tagName --jq '.[0].tagName // "v0.0.0"' 2>/dev/null || echo "v0.0.0")
+          VERSION="${LATEST#v}"
+          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            VERSION="0.0.0"
+          fi
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+          PATCH=$((PATCH + 1))
+          NEW="$MAJOR.$MINOR.$PATCH"
+          # versionCode must increase monotonically or Android refuses the update.
+          CODE=$((MAJOR * 10000 + MINOR * 100 + PATCH))
+          echo "version=$NEW"   >> "$GITHUB_OUTPUT"
+          echo "tag=v$NEW"      >> "$GITHUB_OUTPUT"
+          echo "code=$CODE"     >> "$GITHUB_OUTPUT"
+          echo "Previous: $LATEST -> new: v$NEW (versionCode $CODE)"
+
+      - name: Apply version to the build file
+        env:
+          NEW_VERSION: ${{ steps.version.outputs.version }}
+          NEW_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+          python3 -c "
+          import os, re, pathlib
+          path = pathlib.Path('app/build.gradle.kts')
+          text = path.read_text(encoding='utf-8')
+          version, code = os.environ['NEW_VERSION'], os.environ['NEW_CODE']
+          text, n1 = re.subn(r'versionCode\s*=\s*\d+', 'versionCode = ' + code, text, count=1)
+          text, n2 = re.subn(r'versionName\s*=\s*\"[^\"]*\"', 'versionName = \"' + version + '\"', text, count=1)
+          if not (n1 and n2):
+              raise SystemExit('versionCode/versionName not found in app/build.gradle.kts')
+          path.write_text(text, encoding='utf-8')
+          print('versionCode = ' + code + ', versionName = ' + version)
+          "
+
+      - name: Decode signing keystore
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          echo "${ANDROID_KEYSTORE_BASE64}" | base64 --decode > "${RUNNER_TEMP}/release.jks"
+          if [ ! -s "${RUNNER_TEMP}/release.jks" ]; then
+            echo "::error::ANDROID_KEYSTORE_BASE64 did not decode to a usable keystore."
+            exit 1
+          fi
+
+      # The same gates as the Build workflow. A store build is the one that most
+      # needs them, so they are not skipped to save time.
+      - name: Run Android Lint
+        run: ./gradlew lintRelease --no-daemon --stacktrace
+
+      - name: Run unit tests
+        run: ./gradlew testReleaseUnitTest --no-daemon --stacktrace
+
+      - name: Assemble signed release APK
+        env:
+          ANDROID_KEYSTORE_PATH: ${{ runner.temp }}/release.jks
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+
+      - name: Verify the APK is signed
+        run: |
+          set -euo pipefail
+          APK=$(find app/build/outputs/apk/release -name '*.apk' -type f | head -n 1)
+          if [ -z "$APK" ]; then
+            echo "::error::No release APK was produced"
+            exit 1
+          fi
+          BUILD_TOOLS=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          # An unsigned APK installs nowhere, so this is a hard gate not a warning.
+          "$BUILD_TOOLS/apksigner" verify --print-certs "$APK"
+          echo "apk=$APK" >> "$GITHUB_ENV"
+          echo "Verified: $APK"
+
+      - name: Report APK size
+        run: ./gradlew reportApkSize --no-daemon
+
+      - name: Gather release notes
+        id: notes
+        env:
+          MANUAL_NOTES: ${{ inputs.release_notes }}
+        run: |
+          set -euo pipefail
+          if [ -n "${MANUAL_NOTES}" ]; then
+            NOTES="${MANUAL_NOTES}"
+          else
+            NOTES=$(git log -1 --pretty=%s | cut -c1-160)
+          fi
+          if [ -z "$NOTES" ]; then
+            NOTES="Bug fixes and improvements"
+          fi
+          {
+            echo "body<<NOTES_EOF"
+            echo "$NOTES"
+            echo "NOTES_EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Commit version bump
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle.kts
+          git diff --staged --quiet \
+            && echo "Nothing to commit" \
+            || git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "ReWeb ${{ steps.version.outputs.tag }}"
+          body: ${{ steps.notes.outputs.body }}
+          files: ${{ env.apk }}
+          make_latest: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push APK to store repo
+        env:
+          STORE_REPO_PAT: ${{ secrets.STORE_REPO_PAT }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -z "${STORE_REPO_PAT}" ]; then
+            echo "::error::STORE_REPO_PAT is not set; cannot publish to the store."
+            exit 1
+          fi
+
+          git clone "https://x-access-token:${STORE_REPO_PAT}@github.com/HarithKavish/store.git" /tmp/store
+          DEST="/tmp/store/apps/reweb/mobile/android"
+          mkdir -p "$DEST"
+
+          # Versioned filename only. The store derives latest.json from the highest
+          # version present, so an unversioned copy would confuse that scan.
+          cp "${{ env.apk }}" "$DEST/reweb-v${VERSION}.apk"
+
+          cd /tmp/store
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add "apps/reweb/mobile/android/"
+          git diff --staged --quiet \
+            && echo "Nothing to commit" \
+            || git commit -m "release: ReWeb v${VERSION}"
+          git push
+
+      - name: Delete decoded keystore
+        if: always()
+        run: rm -f "${RUNNER_TEMP}/release.jks"
+
+      - name: Summary
+        run: |
+          {
+            echo "### Published ReWeb v${{ steps.version.outputs.version }}"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| Tag | ${{ steps.version.outputs.tag }} |"
+            echo "| versionCode | ${{ steps.version.outputs.code }} |"
+            echo "| Store path | apps/reweb/mobile/android/reweb-v${{ steps.version.outputs.version }}.apk |"
+            echo ""
+            echo "The store regenerates latest.json from this upload."
+          } >> "$GITHUB_STEP_SUMMARY"

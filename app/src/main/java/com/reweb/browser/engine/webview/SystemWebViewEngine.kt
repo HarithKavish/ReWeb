@@ -72,8 +72,9 @@ class SystemWebViewEngine(context: Context) : BrowserEngine {
 
         // Devices whose Widevine module predates server certificates cannot obtain
         // a licence from sites that use them; see LegacyCdmShim for why answering
-        // "not supported" is both accurate and spec-defined here.
-        legacyCdmShimInstalled = LegacyCdmShim.installIfNeeded(webView, drmModuleBuildYear())
+        // "not supported" is both accurate and spec-defined here. The script is
+        // injected per navigation by the WebViewClient.
+        legacyCdmShimInstalled = LegacyCdmShim.isNeeded(drmModuleBuildYear())
     }
 
     /**
