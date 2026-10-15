@@ -2,7 +2,7 @@ name: Publish to Store
 
 # Mirrors the flow HarithKavish/my_chatgpt uses for Jarvis: derive the next
 # version from the latest release tag, build a signed release APK, tag a GitHub
-# Release, then push the APK into the store repo. The store's own
+# Release, then open a pull request adding the APK to the store repo. The store's own
 # "Update app manifests" workflow regenerates latest.json from the filename, so
 # nothing here writes a manifest.
 
@@ -181,16 +181,9 @@ jobs:
             echo "NOTES_EOF"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Commit version bump
-        run: |
-          set -euo pipefail
-          git config user.name  "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add app/build.gradle.kts
-          git diff --staged --quiet \
-            && echo "Nothing to commit" \
-            || git commit -m "chore: bump version to ${{ steps.version.outputs.version }} [skip ci]"
-          git push
+      # No version-bump commit: the version comes from the latest release tag and is set
+      # in this workspace before the build. Committing it back would be a push to a
+      # protected branch (governance BRANCHING.md, no bypass).
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -203,33 +196,52 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push APK to store repo
+      - name: Open the store release pull request
         env:
           STORE_REPO_PAT: ${{ secrets.STORE_REPO_PAT }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          if [ -z "${STORE_REPO_PAT}" ]; then
-            echo "::error::STORE_REPO_PAT is not set; cannot publish to the store."
+          if [ -z "${STORE_REPO_PAT:-}" ]; then
+            echo "::error::STORE_REPO_PAT is not set; cannot open the store release pull request."
             exit 1
           fi
+          APK_SRC="$GITHUB_WORKSPACE/${{ env.apk }}"
+          [ -n "$APK_SRC" ] && [ -f "$APK_SRC" ] || { echo "::error::No APK to publish"; exit 1; }
+          APK_SRC=$(realpath "$APK_SRC")
 
+          # Protected branches accept changes only through pull requests, from anyone
+          # (governance BRANCHING.md, no bypass), so the release goes in as one: from this
+          # pipeline's own persistent branch, reset onto development each time, into
+          # development with auto-merge. It reaches the live store as it is promoted to main.
+          # Opened with STORE_REPO_PAT, not GITHUB_TOKEN: a pull request made with GITHUB_TOKEN
+          # triggers no workflows, so the review and the gate would never run on it.
+          BRANCH="feature/release-reweb"
           git clone "https://x-access-token:${STORE_REPO_PAT}@github.com/HarithKavish/store.git" /tmp/store
-          DEST="/tmp/store/apps/reweb/mobile/android"
-          mkdir -p "$DEST"
-
-          # Versioned filename only. The store derives latest.json from the highest
-          # version present, so an unversioned copy would confuse that scan.
-          cp "${{ env.apk }}" "$DEST/reweb-v${VERSION}.apk"
-
           cd /tmp/store
+          git remote set-url origin "https://x-access-token:${STORE_REPO_PAT}@github.com/HarithKavish/store.git"
+          git fetch -q origin development
+          git checkout -q -B "$BRANCH" origin/development
+          DEST="apps/reweb/mobile/android"
+          mkdir -p "$DEST"
+          # Versioned filename only: the store derives latest.json from the highest version.
+          cp "$APK_SRC" "$DEST/reweb-v${VERSION}.apk"
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add "apps/reweb/mobile/android/"
-          git diff --staged --quiet \
-            && echo "Nothing to commit" \
-            || git commit -m "release: ReWeb v${VERSION}"
-          git push
+          git add "$DEST"
+          git commit -q -m "release: ReWeb v${VERSION}"
+          git push -q --force origin "$BRANCH"
+
+          export GH_TOKEN="$STORE_REPO_PAT"
+          PR=$(gh pr list -R HarithKavish/store --head "$BRANCH" --base development --state open --json number --jq '.[0].number // empty')
+          if [ -z "$PR" ]; then
+            gh pr create -R HarithKavish/store --head "$BRANCH" --base development \
+              --title "release: ReWeb v${VERSION}" \
+              --body "Publishes ReWeb v${VERSION} into the store catalogue. Opened by the release pipeline; it merges itself once the gate passes and reaches store.harithkavish.com when promoted to main."
+            PR=$(gh pr list -R HarithKavish/store --head "$BRANCH" --base development --state open --json number --jq '.[0].number')
+          fi
+          gh pr merge "$PR" -R HarithKavish/store --auto --squash
+          echo "Store release pull request: https://github.com/HarithKavish/store/pull/$PR"
 
       - name: Delete decoded keystore
         if: always()
